@@ -1,0 +1,386 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using GreenMeadowsPortal.ViewModels
+@model HomeownerDashboardViewModel
+
+@{
+    ViewData["Title"] = "Homeowner - Green Meadows Portal";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Meadows | Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/index.css">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Green Meadows</h3>
+                <div class="sidebar-logo">GM</div>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <img src="@(string.IsNullOrEmpty(Model.ProfileImageUrl) ? "/images/default-avatar.png" : Model.ProfileImageUrl)" alt="User Avatar">
+                </div>
+                <div class="user-info">
+                    <h4>@Model.FirstName</h4>
+                    <p>@Model.Role</p>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="active">
+                <a asp-controller="Dashboard" asp-action="HomeownerDashboard"><i class="fas fa-home"></i> Dashboard</a>
+                </li>
+                <li><a asp-controller="Dashboard" asp-action="Announcement"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li>
+                    <a asp-controller="Dashboard" asp-action="Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a>
+
+                </li>
+                <li>
+                    <a href="facilities.html"><i class="fas fa-swimming-pool"></i> Facilities</a>
+                </li>
+                <li>
+                    <a href="service-requests.html"><i class="fas fa-tools"></i> Service Requests</a>
+                </li>
+                <li>
+                    <a href="documents.html"><i class="fas fa-file-alt"></i> Documents</a>
+                </li>
+                <li>
+                    <a href="forum.html"><i class="fas fa-comments"></i> Community Forum</a>
+                </li>
+                <li>
+                    <a href="security.html"><i class="fas fa-shield-alt"></i> Security</a>
+                </li>
+                <li>
+                    <a href="events.html"><i class="fas fa-calendar-alt"></i> Events</a>
+                </li>
+                <li>
+                    <a href="feedback.html"><i class="fas fa-comment-dots"></i> Feedback</a>
+                </li>
+                <li>
+                    <a href="contacts.html"><i class="fas fa-address-book"></i> Contacts</a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="settings.html"><i class="fas fa-cog"></i> Settings</a>
+                <a asp-controller="Dashboard" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="content-area">
+            <!-- Top Navigation -->
+            <header class="top-navbar">
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <div class="search-bar">
+                    <input type="text" placeholder="Search...">
+                    <button><i class="fas fa-search"></i></button>
+                </div>
+
+                <div class="navbar-right">
+                    <div class="notification-bell">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-count"></span>
+                    </div>
+
+                    <div class="user-dropdown">
+                        <img src="@(string.IsNullOrEmpty(Model.ProfileImageUrl) ? "/images/default-avatar.png" : Model.ProfileImageUrl)" alt="User Avatar">
+                        <span>@Model.FirstName</span>
+                        <i class="fas fa-chevron-down"></i>
+
+                        <div class="dropdown-menu">
+                            <a asp-controller="Dashboard" asp-action="Profile"><i class="fas fa-user"></i> My Profile</a>
+                            <a href="settings.html"><i class="fas fa-cog"></i> Settings</a>
+                            <a asp-controller="Dashboard" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="main-content">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <nav class="breadcrumb">
+                        <a href="index.html">Home</a> / Dashboard
+                    </nav>
+                </div>
+
+                <!-- Dashboard Stats -->
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div class="stat-details">
+                            <h3>0</h3>
+                            <p>Due this month</p>
+                        </div>
+                        <div class="stat-footer">
+
+                            <a asp-controller="Dashboard" asp-action="Billing">Pay Now <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-tools"></i></div>
+                        <div class="stat-details">
+                            <h3>2</h3>
+                            <p>Active Requests</p>
+                        </div>
+                        <div class="stat-footer">
+                            <a href="service-requests.html">View <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                        <div class="stat-details">
+                            <h3>4</h3>
+                            <p>Upcoming Events</p>
+                        </div>
+                        <div class="stat-footer">
+                            <a href="events.html">View All <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-bullhorn"></i></div>
+                        <div class="stat-details">
+                            <h3>5</h3>
+                            <p>New Announcements</p>
+                        </div>
+                        <div class="stat-footer">
+                         <a asp-controller="Dashboard" asp-action="Announcement">Read <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Announcements -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2>Recent Announcements</h2>
+                        <a href="announcements.html" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+
+                    <div class="announcements-list">
+                        <div class="announcement-card">
+                            <div class="announcement-header">
+                                <span class="tag urgent">Urgent</span>
+                                <span class="date">Feb 24, 2025</span>
+                            </div>
+                            <h3>Water Service Interruption</h3>
+                            <p>Please be informed that there will be a scheduled water service interruption on February 27, 2025 from 9:00 AM to 3:00 PM due to maintenance work.</p>
+                            <a href="announcements/1.html" class="read-more">Read More</a>
+                        </div>
+
+                        <div class="announcement-card">
+                            <div class="announcement-header">
+                                <span class="tag general">General</span>
+                                <span class="date">Feb 20, 2025</span>
+                            </div>
+                            <h3>Annual Homeowners' Meeting</h3>
+                            <p>The Annual Homeowners' Meeting is scheduled for March 15, 2025 at the Clubhouse. All homeowners are encouraged to attend.</p>
+                            <a href="announcements/2.html" class="read-more">Read More</a>
+                        </div>
+
+                        <div class="announcement-card">
+                            <div class="announcement-header">
+                                <span class="tag events">Event</span>
+                                <span class="date">Feb 18, 2025</span>
+                            </div>
+                            <h3>Community Cleanup Drive</h3>
+                            <p>Join us for our quarterly Community Cleanup Drive on March 5, 2025. Let's work together to keep our subdivision clean and green.</p>
+                            <a href="announcements/3.html" class="read-more">Read More</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Events and Billing Summary -->
+                <div class="content-row">
+                    <!-- Upcoming Events -->
+                    <div class="content-section half">
+                        <div class="section-header">
+                            <h2>Upcoming Events</h2>
+                            <a href="events.html" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                        </div>
+
+                        <div class="events-list">
+                            <div class="event-item">
+                                <div class="event-date">
+                                    <span class="month">Mar</span>
+                                    <span class="day">05</span>
+                                </div>
+                                <div class="event-details">
+                                    <h4>Community Cleanup Drive</h4>
+                                    <p><i class="fas fa-map-marker-alt"></i> Main Park</p>
+                                    <p><i class="fas fa-clock"></i> 8:00 AM - 11:00 AM</p>
+                                </div>
+                            </div>
+
+                            <div class="event-item">
+                                <div class="event-date">
+                                    <span class="month">Mar</span>
+                                    <span class="day">15</span>
+                                </div>
+                                <div class="event-details">
+                                    <h4>Annual Homeowners' Meeting</h4>
+                                    <p><i class="fas fa-map-marker-alt"></i> Clubhouse</p>
+                                    <p><i class="fas fa-clock"></i> 2:00 PM - 5:00 PM</p>
+                                </div>
+                            </div>
+
+                            <div class="event-item">
+                                <div class="event-date">
+                                    <span class="month">Mar</span>
+                                    <span class="day">22</span>
+                                </div>
+                                <div class="event-details">
+                                    <h4>Swimming Pool Reopening</h4>
+                                    <p><i class="fas fa-map-marker-alt"></i> Clubhouse Pool</p>
+                                    <p><i class="fas fa-clock"></i> 10:00 AM - 12:00 PM</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Billing Summary -->
+                    <div class="content-section half">
+                        <div class="section-header">
+                            <h2>Billing Summary</h2>
+                            <a href="billing.html" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                        </div>
+
+                        <div class="billing-summary">
+                            <div class="billing-total">
+                                <h3>₱2,500.00</h3>
+                                <p>Total Due</p>
+                                <a href="billing.html" class="btn primary-btn">Pay Now</a>
+                            </div>
+
+                            <div class="billing-items">
+                                <div class="billing-item">
+                                    <span class="billing-label">Association Dues (Feb 2025)</span>
+                                    <span class="billing-amount">₱1,800.00</span>
+                                </div>
+                                <div class="billing-item">
+                                    <span class="billing-label">Water Bill (Feb 2025)</span>
+                                    <span class="billing-amount">₱450.00</span>
+                                </div>
+                                <div class="billing-item">
+                                    <span class="billing-label">Security Fee (Feb 2025)</span>
+                                    <span class="billing-amount">₱250.00</span>
+                                </div>
+                                <div class="billing-item total">
+                                    <span class="billing-label">Total</span>
+                                    <span class="billing-amount">₱2,500.00</span>
+                                </div>
+                            </div>
+
+                            <div class="billing-due-date">
+                                <i class="fas fa-calendar-alt"></i> Due Date: February 28, 2025
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Requests -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2>Recent Service Requests</h2>
+                        <a href="service-requests.html" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+
+                    <div class="service-requests-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#SR-2025-042</td>
+                                    <td>Street Light Repair</td>
+                                    <td>Maintenance</td>
+                                    <td><span class="status in-progress">In Progress</span></td>
+                                    <td>Feb 18, 2025</td>
+                                    <td><a href="service-requests/42.html" class="btn small-btn">View</a></td>
+                                </tr>
+                                <tr>
+                                    <td>#SR-2025-041</td>
+                                    <td>Drainage Cleaning</td>
+                                    <td>Maintenance</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td>Feb 15, 2025</td>
+                                    <td><a href="service-requests/41.html" class="btn small-btn">View</a></td>
+                                </tr>
+                                <tr>
+                                    <td>#SR-2025-038</td>
+                                    <td>Tree Trimming</td>
+                                    <td>Landscaping</td>
+                                    <td><span class="status completed">Completed</span></td>
+                                    <td>Feb 10, 2025</td>
+                                    <td><a href="service-requests/38.html" class="btn small-btn">View</a></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="main-footer">
+                <div class="footer-content">
+                    <p>&copy; 2025 Green Meadows Subdivision. All rights reserved.</p>
+                    <div class="footer-links">
+                        <a href="privacy-policy.html">Privacy Policy</a>
+                        <a href="terms-of-service.html">Terms of Service</a>
+                        <a href="contact-us.html">Contact Us</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    <script>
+            // User dropdown toggle
+        const userDropdown = document.querySelector('.user-dropdown');
+        if (userDropdown) {
+            userDropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dropdownMenu = this.querySelector('.dropdown-menu');
+                dropdownMenu.classList.toggle('show');
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function closeUserDropdown(e) {
+                    if (!userDropdown.contains(e.target)) {
+                        dropdownMenu.classList.remove('show');
+                        document.removeEventListener('click', closeUserDropdown);
+                    }
+                });
+            });
+        }
+    </script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>

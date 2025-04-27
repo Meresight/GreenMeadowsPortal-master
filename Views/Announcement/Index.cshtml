@@ -1,0 +1,364 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using GreenMeadowsPortal.ViewModels
+@using GreenMeadowsPortal.Models
+@model AnnouncementViewModel
+
+@{
+    ViewData["Title"] = "Announcements - Green Meadows Portal";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Meadows | Announcements</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/announcement.css">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Green Meadows</h3>
+                <div class="sidebar-logo">GM</div>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <img src="@(string.IsNullOrEmpty(Model.ProfileImageUrl) ? "/images/default-avatar.png" : Model.ProfileImageUrl)" alt="User Avatar">
+                </div>
+                <div class="user-info">
+                    <h4>@Model.FirstName</h4>
+                    <p>@Model.Role</p>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li><a asp-controller="Dashboard" asp-action="HomeownerDashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+
+                <li class="active">
+                    <a asp-controller="Dashbaord" asp-action="Announcement"><i class="fas fa-bullhorn"></i> Announcements</a>
+                </li>
+                <li><a asp-controller="Dashboard" asp-action="Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a></li>
+
+                <li>
+                    <a href="facilities.html"><i class="fas fa-swimming-pool"></i> Facilities</a>
+                </li>
+                <li>
+                    <a href="service-requests.html"><i class="fas fa-tools"></i> Service Requests</a>
+                </li>
+                <li>
+                    <a href="documents.html"><i class="fas fa-file-alt"></i> Documents</a>
+                </li>
+                <li>
+                    <a href="forum.html"><i class="fas fa-comments"></i> Community Forum</a>
+                </li>
+                <li>
+                    <a href="security.html"><i class="fas fa-shield-alt"></i> Security</a>
+                </li>
+                <li>
+                    <a href="events.html"><i class="fas fa-calendar-alt"></i> Events</a>
+                </li>
+                <li>
+                    <a href="feedback.html"><i class="fas fa-comment-dots"></i> Feedback</a>
+                </li>
+                <li>
+                    <a href="contacts.html"><i class="fas fa-address-book"></i> Contacts</a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="settings.html"><i class="fas fa-cog"></i> Settings</a>
+                <a asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="content-area">
+            <!-- Top Navigation -->
+            <header class="top-navbar">
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <div class="search-bar">
+                    <input type="text" placeholder="Search announcements...">
+                    <button><i class="fas fa-search"></i></button>
+                </div>
+
+                <div class="navbar-right">
+                    <div class="notification-bell">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-count"></span>
+                    </div>
+
+                    <div class="user-dropdown">
+                        <img src="@(string.IsNullOrEmpty(Model.ProfileImageUrl) ? "/images/default-avatar.png" : Model.ProfileImageUrl)" alt="User Avatar">
+                        <span>@Model.FirstName</span>
+                        <i class="fas fa-chevron-down"></i>
+
+                        <div class="dropdown-menu">
+                            <a asp-controller="Account" asp-action="Profile"><i class="fas fa-user"></i> My Profile</a>
+                            <a href="settings.html"><i class="fas fa-cog"></i> Settings</a>
+                            <a asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="main-content">
+                <div class="page-header">
+                    <h1>Announcements</h1>
+                    <nav class="breadcrumb">
+                        <a href="index.html">Home</a> / Announcements
+                    </nav>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="filter-controls">
+                    <div class="filter-group">
+                        <label for="filter-type">Type:</label>
+                        <select id="filter-type" onchange="updateFilter()">
+                            <option value="all" selected>All Types</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="important">Important</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-date">Date Range:</label>
+                        <select id="filter-date">
+                            <option value="all">All Time</option>
+                            <option value="this-week">This Week</option>
+                            <option value="this-month">This Month</option>
+                            <option value="last-month">Last Month</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn primary-btn" onclick="applyFilters()">Apply Filters</button>
+                        <button class="btn outline-btn" onclick="resetFilters()">Reset</button>
+                    </div>
+                </div>
+
+                <!-- Announcements List -->
+                <div class="announcements-list" id="announcements-container">
+                    <!-- Announcements will be loaded dynamically -->
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading announcements...</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination-container">
+                    <!-- Pagination will be generated dynamically -->
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="main-footer">
+                <div class="footer-content">
+                    <p>&copy; @DateTime.Now.Year Green Meadows Subdivision. All rights reserved.</p>
+                    <div class="footer-links">
+                        <a href="privacy-policy.html">Privacy Policy</a>
+                        <a href="terms-of-service.html">Terms of Service</a>
+                        <a href="contact-us.html">Contact Us</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    <script>
+        // User dropdown toggle
+        const userDropdown = document.querySelector('.user-dropdown');
+        if (userDropdown) {
+            userDropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dropdownMenu = this.querySelector('.dropdown-menu');
+                dropdownMenu.classList.toggle('show');
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function closeUserDropdown(e) {
+                    if (!userDropdown.contains(e.target)) {
+                        dropdownMenu.classList.remove('show');
+                        document.removeEventListener('click', closeUserDropdown);
+                    }
+                });
+            });
+        }
+
+        // Mobile sidebar toggle
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+            });
+        }
+
+        // Load announcements from API
+        async function loadAnnouncements(page = 1, filter = 'all') {
+            try {
+                const announcementsContainer = document.getElementById('announcements-container');
+                announcementsContainer.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><p>Loading announcements...</p></div>';
+
+                // In a real app, you'd fetch from an API endpoint
+                // For demo, we'll use a timeout to simulate network request
+                setTimeout(async () => {
+                    try {
+                        const response = await fetch(`/api/announcements?page=${page}&filter=${filter}`);
+
+                        // If the API is not available, use mock data
+                        let data;
+                        if (!response.ok) {
+                            data = getMockAnnouncements();
+                        } else {
+                            data = await response.json();
+                        }
+
+                        renderAnnouncements(data.announcements);
+                        renderPagination(data.totalPages, data.currentPage);
+                    } catch (error) {
+                        console.error('Error fetching announcements:', error);
+                        // Use mock data as fallback
+                        const mockData = getMockAnnouncements();
+                        renderAnnouncements(mockData.announcements);
+                        renderPagination(mockData.totalPages, mockData.currentPage);
+                    }
+                }, 500);
+            } catch (error) {
+                console.error('Error in loadAnnouncements:', error);
+                announcementsContainer.innerHTML = '<div class="error-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load announcements. Please try again later.</p></div>';
+            }
+        }
+
+        // Render announcements to the DOM
+        function renderAnnouncements(announcements) {
+            const container = document.getElementById('announcements-container');
+
+            if (!announcements || announcements.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                        <h3>No Announcements Found</h3>
+                        <p>There are no announcements to display at this time.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            announcements.forEach(announcement => {
+                let priorityClass = 'general';
+                if (announcement.priority === 0) priorityClass = 'urgent';
+                else if (announcement.priority === 1) priorityClass = 'important';
+
+                html += `
+                    <div class="announcement-card">
+                        <div class="announcement-header">
+                            <span class="tag ${priorityClass}">${getPriorityText(announcement.priority)}</span>
+                            <span class="date">${formatDate(announcement.publishDate)}</span>
+                        </div>
+                        <h3>${announcement.title}</h3>
+                        <p>${truncateText(announcement.content, 150)}</p>
+                        <div class="announcement-footer">
+                            <a href="/Announcement/Details/${announcement.id}" class="read-more">Read More</a>
+                            <span class="announcement-meta">
+                                Posted by: ${announcement.authorName} |
+                                ${announcement.readCount} readers
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Render pagination controls
+        function renderPagination(totalPages, currentPage) {
+            const container = document.getElementById('pagination-container');
+            if (!totalPages || totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            if (currentPage > 1) {
+                html += `<a href="#" onclick="loadAnnouncements(${currentPage - 1}); return false;" class="prev"><i class="fas fa-chevron-left"></i> Previous</a>`;
+            }
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    html += `<a class="active">${i}</a>`;
+                } else if (i <= 3 || i > totalPages - 3 || Math.abs(i - currentPage) <= 1) {
+                    html += `<a href="#" onclick="loadAnnouncements(${i}); return false;">${i}</a>`;
+                } else if (Math.abs(i - currentPage) === 2) {
+                    html += `<span class="ellipsis">...</span>`;
+                    // Skip to the next relevant page
+                    i = (i < currentPage) ? currentPage - 2 : totalPages - 3;
+                }
+            }
+
+            if (currentPage < totalPages) {
+                html += `<a href="#" onclick="loadAnnouncements(${currentPage + 1}); return false;" class="next">Next <i class="fas fa-chevron-right"></i></a>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Helper functions
+        function getPriorityText(priority) {
+            switch(priority) {
+                case 0: return 'Urgent';
+                case 1: return 'Important';
+                default: return 'General';
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substr(0, maxLength) + '...';
+        }
+
+        // Filter and pagination functions
+        function updateFilter() {
+            // This can be used to auto-submit the filter when changed
+            // For now we're requiring the Apply button to be clicked
+        }
+
+        function applyFilters() {
+            const filterType = document.getElementById('filter-type').value;
+            const filterDate = document.getElementById('filter-date').value;
+            loadAnnouncements(1, filterType);
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-type').value = 'all';
+            document.getElementById('filter-date').value = 'all';
+            loadAnnouncements(1, 'all');
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnnouncements();
+        });
+    </script>
+</body>
+</html>

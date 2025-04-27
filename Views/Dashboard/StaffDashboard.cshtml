@@ -1,0 +1,472 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using GreenMeadowsPortal.ViewModels
+@model StaffDashboardViewModel
+
+@{
+    ViewData["Title"] = "Staff Dashboard - Green Meadows Portal";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Meadows | Staff Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/staff.css">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Green Meadows</h3>
+                <div class="sidebar-logo">GM</div>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <img src="@(string.IsNullOrEmpty(Model.ProfileImageUrl) ? "/images/default-avatar.png" : Model.ProfileImageUrl)" alt="User Avatar">
+                </div>
+                <div class="user-info">
+                    <h4>@Model.FirstName</h4>
+                    <p>@Model.Role</p>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="active">
+                    <a asp-controller="Dashboard" asp-action="StaffDashboard"><i class="fas fa-home"></i> Dashboard</a>
+                <li>
+                    <a href="/Admin/UserManagement"><i class="fas fa-users"></i> User Management</a>
+                </li>
+                <li>
+                    <a href="/Staff/Announcements"><i class="fas fa-bullhorn"></i> Announcements</a>
+                </li>
+                <li>
+                    <a href="/Staff/Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a>
+                </li>
+                <li>
+                    <a href="/Staff/Facilities"><i class="fas fa-swimming-pool"></i> Facilities</a>
+                </li>
+                <li>
+                    <a href="/Staff/ServiceRequests"><i class="fas fa-tools"></i> Service Requests</a>
+                </li>
+                <li>
+                    <a href="/Staff/Documents"><i class="fas fa-file-alt"></i> Documents</a>
+                </li>
+                <li>
+                    <a href="/Staff/Forum"><i class="fas fa-comments"></i> Community Forum</a>
+                </li>
+                <li>
+                    <a href="/Staff/Security"><i class="fas fa-shield-alt"></i> Security</a>
+                </li>
+                <li>
+                    <a href="/Staff/Events"><i class="fas fa-calendar-alt"></i> Events</a>
+                </li>
+                <li>
+                    <a href="/Staff/Reports"><i class="fas fa-chart-bar"></i> Reports</a>
+                </li>
+                <li>
+                    <a href="/Staff/Polls"><i class="fas fa-poll"></i> Polls & Surveys</a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="/Staff/Settings"><i class="fas fa-cog"></i> Settings</a>
+                <a asp-controller="Dashboard" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="content-area">
+            <!-- Top Navigation -->
+            <header class="top-navbar">
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <div class="search-bar">
+                    <input type="text" placeholder="Search users, requests, bills...">
+                    <button><i class="fas fa-search"></i></button>
+                </div>
+
+                <div class="navbar-right">
+                    <div class="notification-bell">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-count">@Model.NotificationCount</span>
+                    </div>
+
+                    <div class="user-dropdown">
+                        <img src="@(string.IsNullOrEmpty(Model.ProfileImageUrl) ? "/images/default-avatar.png" : Model.ProfileImageUrl)" alt="User Avatar">
+                        <span>@Model.FirstName</span>
+                        <i class="fas fa-chevron-down"></i>
+
+                        <div class="dropdown-menu">
+                            <a asp-controller="Dashboard" asp-action="Profile"><i class="fas fa-user"></i> My Profile</a>
+                            <a href="/Staff/Settings"><i class="fas fa-cog"></i> Settings</a>
+                            <a asp-controller="Dashboard" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="main-content">
+                <div class="page-header">
+                    <h1>Staff Dashboard</h1>
+                    <nav class="breadcrumb">
+                        <a href="/Staff/Dashboard">Home</a> / Dashboard
+                    </nav>
+                </div>
+
+                <!-- Dashboard Stats -->
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        <div class="stat-details">
+                            <h3>@Model.TotalResidents</h3>
+                            <p>Registered Residents</p>
+                        </div>
+                        <div class="stat-footer">
+                            <a href="/Staff/UserManagement">Manage <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-tools"></i></div>
+                        <div class="stat-details">
+                            <h3>@Model.PendingRequests</h3>
+                            <p>Pending Requests</p>
+                        </div>
+                        <div class="stat-footer">
+                            <a href="/Staff/ServiceRequests">View <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div class="stat-details">
+                            <h3>₱@Model.DuePaymentsTotal.ToString("N2")</h3>
+                            <p>Unpaid Dues</p>
+                        </div>
+                        <div class="stat-footer">
+                            <a href="/Staff/Billing">View Details <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="stat-details">
+                            <h3>@Model.UpcomingEvents</h3>
+                            <p>Upcoming Events</p>
+                        </div>
+                        <div class="stat-footer">
+                            <a href="/Staff/Events">Manage <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2>Quick Actions</h2>
+                    </div>
+
+                    <div class="quick-actions">
+                        <a href="/Staff/Announcement/Create" class="quick-action-card">
+                            <div class="action-icon"><i class="fas fa-bullhorn"></i></div>
+                            <div class="action-text">Post Announcement</div>
+                        </a>
+
+                        <a href="/Staff/ServiceRequest/New" class="quick-action-card">
+                            <div class="action-icon"><i class="fas fa-tools"></i></div>
+                            <div class="action-text">Create Service Request</div>
+                        </a>
+
+                        <a href="/Staff/User/Register" class="quick-action-card">
+                            <div class="action-icon"><i class="fas fa-user-plus"></i></div>
+                            <div class="action-text">Register New User</div>
+                        </a>
+
+                        <a href="/Staff/Event/Create" class="quick-action-card">
+                            <div class="action-icon"><i class="fas fa-calendar-plus"></i></div>
+                            <div class="action-text">Schedule Event</div>
+                        </a>
+
+                        <a href="/Staff/Billing/Generate" class="quick-action-card">
+                            <div class="action-icon"><i class="fas fa-file-invoice"></i></div>
+                            <div class="action-text">Generate Bills</div>
+                        </a>
+
+                        <a href="/Staff/Reports/Generate" class="quick-action-card">
+                            <div class="action-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="action-text">Generate Reports</div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Recent Service Requests -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2>Recent Service Requests</h2>
+                        <a href="/Staff/ServiceRequests" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+
+                    <div class="service-requests-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Requester</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Priority</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var request in Model.RecentServiceRequests)
+                                {
+                                    <tr>
+                                        <td>#@request.Id</td>
+                                        <td>@request.Title</td>
+                                        <td>@request.RequesterName</td>
+                                        <td>@request.Category</td>
+                                        <td><span class="status @request.StatusClass">@request.Status</span></td>
+                                        <td>@request.DateSubmitted.ToString("MMM dd, yyyy")</td>
+                                        <td><span class="priority @request.PriorityClass">@request.Priority</span></td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <a href="/Staff/ServiceRequest/View/@request.Id" class="btn small-btn">View</a>
+                                                <a href="/Staff/ServiceRequest/Update/@request.Id" class="btn small-btn">Update</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Content Row -->
+                <div class="content-row">
+                    <!-- Recent Users -->
+                    <div class="content-section half">
+                        <div class="section-header">
+                            <h2>Recently Registered Users</h2>
+                            <a href="/Staff/UserManagement" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                        </div>
+
+                        <div class="recent-users-list">
+                            @foreach (var user in Model.RecentUsers)
+                            {
+                                <div class="user-list-item">
+                                    <div class="user-avatar">
+                                        <img src="@user.AvatarUrl" alt="@user.Name">
+                                    </div>
+                                    <div class="user-details">
+                                        <h4>@user.Name</h4>
+                                        <p>@user.Address</p>
+                                        <span class="user-date">Registered: @user.RegistrationDate.ToString("MMM dd, yyyy")</span>
+                                    </div>
+                                    <div class="user-actions">
+                                        <a href="/Staff/User/Details/@user.Id" class="btn small-btn">View</a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Events -->
+                    <div class="content-section half">
+                        <div class="section-header">
+                            <h2>Upcoming Events</h2>
+                            <a href="/Staff/Events" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                        </div>
+
+                        <div class="events-list">
+                            @foreach (var evt in Model.UpcomingEventsList)
+                            {
+                                <div class="event-item">
+                                    <div class="event-date">
+                                        <span class="month">@evt.EventDate.ToString("MMM")</span>
+                                        <span class="day">@evt.EventDate.ToString("dd")</span>
+                                    </div>
+                                    <div class="event-details">
+                                        <h4>@evt.Title</h4>
+                                        <p><i class="fas fa-map-marker-alt"></i> @evt.Location</p>
+                                        <p><i class="fas fa-clock"></i> @evt.StartTime.ToString("h:mm tt") - @evt.EndTime.ToString("h:mm tt")</p>
+                                    </div>
+                                    <div class="event-actions">
+                                        <a href="/Staff/Event/Edit/@evt.Id" class="btn small-btn">Edit</a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing Overview -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2>Billing Overview</h2>
+                        <a href="/Staff/Billing" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+
+                    <div class="billing-overview">
+                        <div class="billing-stats">
+                            <div class="billing-stat-card">
+                                <div class="billing-stat-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                                <div class="billing-stat-details">
+                                    <h3>₱@Model.TotalBilledAmount.ToString("N2")</h3>
+                                    <p>Total Billed (Current Month)</p>
+                                </div>
+                            </div>
+
+                            <div class="billing-stat-card">
+                                <div class="billing-stat-icon"><i class="fas fa-hand-holding-usd"></i></div>
+                                <div class="billing-stat-details">
+                                    <h3>₱@Model.TotalCollectedAmount.ToString("N2")</h3>
+                                    <p>Total Collected (Current Month)</p>
+                                </div>
+                            </div>
+
+                            <div class="billing-stat-card">
+                                <div class="billing-stat-icon"><i class="fas fa-percentage"></i></div>
+                                <div class="billing-stat-details">
+                                    <h3>@Model.CollectionRate.ToString("0.0")%</h3>
+                                    <p>Collection Rate</p>
+                                </div>
+                            </div>
+
+                            <div class="billing-stat-card">
+                                <div class="billing-stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                                <div class="billing-stat-details">
+                                    <h3>@Model.OverdueAccountsCount</h3>
+                                    <p>Overdue Accounts</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="billing-actions">
+                            <a href="/Staff/Billing/Generate" class="btn primary-btn"><i class="fas fa-file-invoice"></i> Generate Bills</a>
+                            <a href="/Staff/Billing/SendReminders" class="btn secondary-btn"><i class="fas fa-envelope"></i> Send Reminders</a>
+                            <a href="/Staff/Reports/Collections" class="btn tertiary-btn"><i class="fas fa-chart-pie"></i> Collection Report</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Analytics -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2>System Analytics</h2>
+                        <a href="/Staff/Reports/Analytics" class="view-all">Full Reports <i class="fas fa-arrow-right"></i></a>
+                    </div>
+
+                    <div class="analytics-cards">
+                        <div class="analytics-card">
+                            <h3>User Activity</h3>
+                            <div class="analytics-data">
+                                <div class="analytics-metric">
+                                    <span class="metric-value">@Model.DailyActiveUsers</span>
+                                    <span class="metric-label">Daily Active Users</span>
+                                </div>
+                                <div class="analytics-metric">
+                                    <span class="metric-value">@Model.NewUsersToday</span>
+                                    <span class="metric-label">New Today</span>
+                                </div>
+                                <div class="analytics-metric">
+                                    <span class="metric-value">@Model.TotalLoginToday</span>
+                                    <span class="metric-label">Total Logins</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="analytics-card">
+                            <h3>Service Requests</h3>
+                            <div class="analytics-data">
+                                <div class="analytics-metric">
+                                    <span class="metric-value">@Model.RequestsCreatedToday</span>
+                                    <span class="metric-label">Created Today</span>
+                                </div>
+                                <div class="analytics-metric">
+                                    <span class="metric-value">@Model.RequestsCompletedToday</span>
+                                    <span class="metric-label">Completed Today</span>
+                                </div>
+                                <div class="analytics-metric">
+                                    <span class="metric-value">@Model.AverageResolutionTime</span>
+                                    <span class="metric-label">Avg. Resolution Time</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="analytics-card">
+                            <h3>Facility Usage</h3>
+                            <div class="analytics-data">
+                                <div class="analytics-metric">
+                                    <span class="metric-value">@Model.FacilityBookingsToday</span>
+                                    <span class="metric-label">Bookings Today</span>
+                                </div>
+                                <div class="analytics-metric">
+                                    <span class="metric-value">@Model.MostBookedFacility</span>
+                                    <span class="metric-label">Most Popular</span>
+                                </div>
+                                <div class="analytics-metric">
+                                    <span class="metric-value">@Model.UpcomingBookings</span>
+                                    <span class="metric-label">Upcoming</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="main-footer">
+                <div class="footer-content">
+                    <p>&copy; 2025 Green Meadows Subdivision. All rights reserved.</p>
+                    <div class="footer-links">
+                        <a href="/Privacy">Privacy Policy</a>
+                        <a href="/Terms">Terms of Service</a>
+                        <a href="/Contact">Contact Us</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    <script>
+                     document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.user-dropdown').forEach(function (dropdown) {
+                dropdown.addEventListener('click', function (event) {
+                    event.stopPropagation(); // Prevents closing when clicking inside
+                    this.classList.toggle('open');
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                document.querySelectorAll('.user-dropdown.open').forEach(function (dropdown) {
+                    if (!dropdown.contains(event.target)) {
+                        dropdown.classList.remove('open');
+                    }
+                });
+            });
+        });
+
+
+
+    </script>
+
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/js/staff-dashboard.js"></script>
+</body>
+</html>

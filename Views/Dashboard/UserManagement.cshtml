@@ -1,0 +1,938 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using GreenMeadowsPortal.ViewModels
+@model UserManagementViewModel
+
+@{
+    ViewData["Title"] = "User Management - Green Meadows Portal";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Meadows | User Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="~/css/usermanage.css" />
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Admin Sidebar Navigation -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Green Meadows</h3>
+                <div class="sidebar-logo">GM</div>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-avatar">   
+                    <img src="@(string.IsNullOrEmpty(Model.CurrentUserProfileImageUrl) ? "/images/default-profile.png" : Model.CurrentUserProfileImageUrl)" alt="Admin Avatar">
+                </div>
+                <div class="user-info">
+                <h4>@Model.Role</h4>
+                <p>@Model.FirstName</p>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li> 
+                    <a asp-controller="Dashboard" asp-action="AdminDashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                </li>
+                <li class="active">
+                    <a asp-controller="Dashboard" asp-action="UserManagement"><i class="fas fa-users"></i> User Management</a>
+                </li>
+
+                <li>
+                    <a href="/Admin/Announcements"><i class="fas fa-bullhorn"></i> Announcements</a>
+                </li>
+                <li>
+                    <a href="/Admin/Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a>
+                </li>
+                <li>
+                    <a href="/Admin/Facilities"><i class="fas fa-swimming-pool"></i> Facilities</a>
+                </li>
+                <li>
+                    <a href="/Admin/ServiceRequests"><i class="fas fa-tools"></i> Service Requests</a>
+                </li>
+                <li>
+                    <a href="/Admin/Documents"><i class="fas fa-file-alt"></i> Documents</a>
+                </li>
+                <li>
+                    <a href="/Admin/Forum"><i class="fas fa-comments"></i> Community Forum</a>
+                </li>
+                <li>
+                    <a href="/Admin/Security"><i class="fas fa-shield-alt"></i> Security</a>
+                </li>
+                <li>
+                    <a href="/Admin/Events"><i class="fas fa-calendar-alt"></i> Events</a>
+                </li>
+                <li>
+                    <a href="/Admin/Reports"><i class="fas fa-chart-bar"></i> Reports</a>
+                </li>
+                <li>
+                    <a href="/Admin/Polls"><i class="fas fa-poll"></i> Polls & Surveys</a>
+                </li>
+                <li>
+                    <a href="/Admin/Settings"><i class="fas fa-cog"></i> Settings</a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="/Admin/Profile"><i class="fas fa-user-cog"></i> Profile</a>
+                <a asp-controller="Dashboard" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="content-area">
+            <!-- Top Navigation -->
+            <header class="top-navbar">
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <div class="search-bar">
+                    <input type="text" placeholder="Search users..." id="user-search">
+                    <button><i class="fas fa-search"></i></button>
+                </div>
+
+                <div class="navbar-right">
+                    <div class="notification-bell">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-count">@Model.NotificationCount</span>
+                    </div>
+
+                    <div class="user-dropdown">
+                        <img src="@(string.IsNullOrEmpty(Model.CurrentUserProfileImageUrl) ? "/images/default-profile.png" : Model.CurrentUserProfileImageUrl)" alt="Admin Avatar">
+                        <span>@Model.FirstName</span>
+                        <i class="fas fa-chevron-down"></i>
+
+                        <div class="dropdown-menu">
+                            <a href="/Admin/Profile"><i class="fas fa-user-cog"></i> My Profile</a>
+                            <a href="/Admin/Settings"><i class="fas fa-cog"></i> Settings</a>
+                            <a asp-controller="Dashboard" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="main-content">
+                <div class="page-header">
+                    <h1>User Management</h1>
+                    <nav class="breadcrumb">
+                        <a href="/Admin/Dashboard">Admin</a> / User Management
+                    </nav>
+                </div>
+
+                <!-- Alert Messages -->
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+                        <button class="close-alert"><i class="fas fa-times"></i></button>
+                    </div>
+                }
+                
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+                        <button class="close-alert"><i class="fas fa-times"></i></button>
+                    </div>
+                }
+
+                <!-- User Management Tabs -->
+                <div class="tabs-container">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="all-users">All Users</button>
+                        <button class="tab-btn" data-tab="pending-requests">Pending Requests 
+                            @if (Model.PendingRequestsCount > 0)
+                            {
+                                <span class="badge">@Model.PendingRequestsCount</span>
+                            }
+                        </button>
+                        <button class="tab-btn" data-tab="roles-permissions">Roles & Permissions</button>
+                        <button class="tab-btn" data-tab="activity-logs">Activity Logs</button>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        <!-- All Users Tab -->
+                        <div class="tab-pane active" id="all-users">
+                            <div class="action-bar">
+                                <div class="filters">
+                                    <div class="filter-group">
+                                        <label for="role-filter">Role:</label>
+                                        <select id="role-filter" class="form-select">
+                                            <option value="all">All Roles</option>
+                                            <option value="Admin">Admin</option>
+                                            <option value="Staff">Staff</option>
+                                            <option value="Homeowner">Homeowner</option>    
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label for="status-filter">Status:</label>
+                                        <select id="status-filter" class="form-select">
+                                            <option value="all">All Statuses</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Suspended">Suspended</option>
+                                            <option value="Inactive">Inactive</option>
+                                            <option value="Pending">Pending</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="bulk-actions">
+                                    <select id="bulk-action" class="form-select">
+                                        <option value="">Bulk Actions</option>
+                                        <option value="activate">Activate</option>
+                                        <option value="suspend">Suspend</option>
+                                        <option value="deactivate">Deactivate</option>
+                                        <option value="export">Export Data</option>
+                                        <option value="delete">Delete</option>
+                                    </select>
+                                    <button id="apply-bulk" class="btn primary-btn" disabled>Apply</button>
+                                </div>
+                                <a asp-controller="UserManagement" asp-action="AddUser" class="btn primary-btn">
+                                    <i class="fas fa-user-plus"></i> Add New User
+                                </a>
+                            </div>
+
+                            <div class="data-table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                <input type="checkbox" id="select-all-users">
+                                            </th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Registered</th>
+                                            <th>Last Login</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var user in Model.Users)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" class="user-checkbox" value="@user.Id">
+                                                </td>
+                                                <td>
+                                                    <div class="user-cell">
+                                                        <div class="user-avatar-sm">
+                                                            <img src="@(string.IsNullOrEmpty(user.ProfileImageUrl) ? "/images/default-avatar.png" : user.ProfileImageUrl)" alt="@user.FullName">
+                                                        </div>
+                                                        <div class="user-info-sm">
+                                                            <span class="user-name">@user.FullName</span>
+                                                            <span class="user-property">@user.Address</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>@user.Email</td>
+                                                <td><span class="badge role-@user.Role.ToLower()">@user.Role</span></td>
+                                                <td>
+                                                    @if (user.Status == "Active")
+                                                    {
+                                                        <span class="badge status-active">Active</span>
+                                                    }
+                                                    else if (user.Status == "Suspended")
+                                                    {
+                                                        <span class="badge status-warning">Suspended</span>
+                                                    }
+                                                    else if (user.Status == "Pending")
+                                                    {
+                                                        <span class="badge status-pending">Pending</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge status-inactive">Inactive</span>
+                                                    }
+                                                </td>
+                                                <td>@user.MemberSince</td>
+                                                <td>@user.LastLogin</td>
+                                                <td>
+                                                    <div class="action-buttons">
+                                                        <a href="/Admin/UserManagement/Edit/@user.Id" class="btn icon-btn" title="Edit User">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <button class="btn icon-btn reset-password-btn" data-user-id="@user.Id" title="Reset Password">
+                                                            <i class="fas fa-key"></i>
+                                                        </button>
+                                                        @if (user.Status == "Active")
+                                                        {
+                                                            <button class="btn icon-btn suspend-user-btn" data-user-id="@user.Id" title="Suspend User">
+                                                                <i class="fas fa-user-slash"></i>
+                                                            </button>
+                                                        }
+                                                        else if (user.Status == "Suspended")
+                                                        {
+                                                            <button class="btn icon-btn activate-user-btn" data-user-id="@user.Id" title="Activate User">
+                                                                <i class="fas fa-user-check"></i>
+                                                            </button>
+                                                        }
+                                                        <button class="btn icon-btn delete-user-btn" data-user-id="@user.Id" title="Delete User">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="pagination">
+                                <span class="pagination-info">Showing <strong>@Model.PageStartRecord-@Model.PageEndRecord</strong> of <strong>@Model.TotalRecords</strong> users</span>
+                                <div class="pagination-controls">
+                                    @if (Model.CurrentPage > 1)
+                                    {
+                                        <a href="/Admin/UserManagement?page=@(Model.CurrentPage-1)" class="pagination-btn"><i class="fas fa-chevron-left"></i></a>
+                                    }
+                                    else
+                                    {
+                                        <button class="pagination-btn" disabled><i class="fas fa-chevron-left"></i></button>
+                                    }
+                                    
+                                    @for (int i = 1; i <= Model.TotalPages; i++)
+                                    {
+                                        if (i == Model.CurrentPage)
+                                        {
+                                            <span class="pagination-btn active">@i</span>
+                                        }
+                                        else
+                                        {
+                                            <a href="/Admin/UserManagement?page=@i" class="pagination-btn">@i</a>
+                                        }
+                                    }
+                                    
+                                    @if (Model.CurrentPage < Model.TotalPages)
+                                    {
+                                        <a href="/Admin/UserManagement?page=@(Model.CurrentPage+1)" class="pagination-btn"><i class="fas fa-chevron-right"></i></a>
+                                    }
+                                    else
+                                    {
+                                        <button class="pagination-btn" disabled><i class="fas fa-chevron-right"></i></button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pending Requests Tab -->
+                        <div class="tab-pane" id="pending-requests">
+                            @if (Model.PendingUsers.Count > 0)
+                            {
+                                <div class="pending-requests-list">
+                                    @foreach (var user in Model.PendingUsers)
+                                    {
+                                        <div class="request-card">
+                                            <div class="request-header">
+                                                <div class="user-info-block">
+                                                    <div class="user-avatar-md">
+                                                        <img src="@(string.IsNullOrEmpty(user.ProfileImageUrl) ? "/images/default-avatar.png" : user.ProfileImageUrl)" alt="@user.FullName">
+                                                    </div>
+                                                    <div class="user-details">
+                                                        <h3>@user.FullName</h3>
+                                                        <p><i class="fas fa-envelope"></i> @user.Email</p>
+                                                        <p><i class="fas fa-phone"></i> @user.PhoneNumber</p>
+                                                    </div>
+                                                </div>
+                                                <div class="request-meta">
+                                                    <span class="request-date">Requested: @user.MemberSince</span>
+                                                    <span class="badge status-pending">Pending Approval</span>
+                                                </div>
+                                            </div>
+                                            <div class="request-body">
+                                                <div class="property-info">
+                                                    <h4>Property Information</h4>
+                                                    <p><strong>Address:</strong> @user.Address</p>
+                                                    <p><strong>Property Type:</strong> @user.PropertyType</p>
+                                                    <p><strong>Ownership Status:</strong> @user.OwnershipStatus</p>
+                                                </div>
+                                                <div class="verification-info">
+                                                    <h4>Verification Documents</h4>
+                                                    @if (user.Documents != null && user.Documents.Count > 0)
+                                                    {
+                                                        <div class="document-list">
+                                                            @foreach (var document in user.Documents)
+                                                            {
+                                                                <div class="document-item">
+                                                                    <i class="fas fa-file-alt"></i>
+                                                                    <span>@document.Name</span>
+                                                                    <a href="/Admin/UserManagement/ViewDocument/@document.Id" class="btn small-btn" target="_blank">View</a>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <p>No documents uploaded</p>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="request-footer">
+                                                <div class="request-notes">
+                                                    <textarea placeholder="Add notes about this request" class="form-control request-note-text" data-user-id="@user.Id"></textarea>
+                                                </div>
+                                                <div class="request-actions">
+                                                    <button class="btn secondary-btn request-more-info-btn" data-user-id="@user.Id">Request More Info</button>
+                                                    <button class="btn danger-btn reject-request-btn" data-user-id="@user.Id">Reject</button>
+                                                    <button class="btn primary-btn approve-request-btn" data-user-id="@user.Id">Approve</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <h3>No Pending Requests</h3>
+                                    <p>There are currently no user registration requests awaiting approval.</p>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Roles & Permissions Tab -->
+                        <div class="tab-pane" id="roles-permissions">
+                            <div class="roles-container">
+                                <div class="roles-list">
+                                    <div class="roles-header">
+                                        <h3>System Roles</h3>
+                                        <button class="btn primary-btn" id="add-role-btn"><i class="fas fa-plus"></i> Create Role</button>
+                                    </div>
+                                    
+                                    <div class="role-items">
+                                        @foreach (var role in Model.Roles)
+                                        {
+                                            <div class="role-item @(role.Name == "Admin" ? "system-role" : "")" data-role-name="@role.Name">
+                                                <div class="role-info">
+                                                    <h4>@role.Name</h4>
+                                                    <span class="user-count">@role.UserCount users</span>
+                                                </div>
+                                                <div class="role-actions">
+                                                    @if (role.Name != "Admin" && role.Name != "Homeowner" && role.Name != "Staff")
+                                                    {
+                                                        <button class="btn icon-btn edit-role-btn" data-role-name="@role.Name">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn icon-btn delete-role-btn" data-role-name="@role.Name">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    }
+                                                    <button class="btn icon-btn view-role-btn" data-role-name="@role.Name">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                
+                                <div class="permissions-panel">
+                                    <div class="permissions-header">
+                                        <h3>Role Permissions</h3>
+                                        <p class="select-role-prompt">Select a role to view and edit permissions</p>
+                                    </div>
+                                    
+                                    <div class="permissions-content" id="permissions-content">
+                                        <div class="empty-state">
+                                            <div class="empty-state-icon">
+                                                <i class="fas fa-user-shield"></i>
+                                            </div>
+                                            <h3>No Role Selected</h3>
+                                            <p>Select a role from the list to view and modify permissions.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Activity Logs Tab -->
+                        <div class="tab-pane" id="activity-logs">
+                            <div class="activity-filters">
+                                <div class="filter-group">
+                                    <label for="activity-type">Activity Type:</label>
+                                    <select id="activity-type" class="form-select">
+                                        <option value="all">All Activities</option>
+                                        <option value="login">Login</option>
+                                        <option value="logout">Logout</option>
+                                        <option value="profile-update">Profile Update</option>
+                                        <option value="password-change">Password Change</option>
+                                        <option value="account-created">Account Created</option>
+                                        <option value="status-change">Status Change</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="activity-user">User:</label>
+                                    <select id="activity-user" class="form-select">
+                                        <option value="all">All Users</option>
+                                        @foreach (var user in Model.Users.Take(20))
+                                        {
+                                            <option value="@user.Id">@user.FullName</option>
+                                        }
+                                        @if (Model.Users.Count > 20)
+                                        {
+                                            <option value="more">More...</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="filter-group date-range">
+                                    <label>Date Range:</label>
+                                    <div class="date-inputs">
+                                        <input type="date" id="date-from" class="form-control">
+                                        <span>to</span>
+                                        <input type="date" id="date-to" class="form-control">
+                                    </div>
+                                </div>
+                                <button class="btn primary-btn" id="apply-filters">Apply Filters</button>
+                                <button class="btn secondary-btn" id="reset-filters">Reset</button>
+                                <button class="btn export-btn" id="export-logs"><i class="fas fa-download"></i> Export</button>
+                            </div>
+                            
+                            <div class="activity-logs-table">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Activity</th>
+                                            <th>Details</th>
+                                            <th>IP Address</th>
+                                            <th>Date & Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var log in Model.ActivityLogs)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="user-cell">
+                                                        <div class="user-avatar-sm">
+                                                            <img src="@(string.IsNullOrEmpty(log.UserProfileImage) ? "/images/default-avatar.png" : log.UserProfileImage)" alt="@log.UserName">
+                                                        </div>
+                                                        <div class="user-info-sm">
+                                                            <span class="user-name">@log.UserName</span>
+                                                            <span class="user-role">@log.UserRole</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="activity-type @log.ActivityType.ToLower()">@log.ActivityType</span>
+                                                </td>
+                                                <td>@log.Details</td>
+                                                <td>@log.IpAddress</td>
+                                                <td>@log.Timestamp</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination for Activity Logs -->
+                            <div class="pagination">
+                                <span class="pagination-info">Showing <strong>@Model.LogsPageStartRecord-@Model.LogsPageEndRecord</strong> of <strong>@Model.TotalLogs</strong> logs</span>
+                                <div class="pagination-controls">
+                                    @if (Model.LogsCurrentPage > 1)
+                                    {
+                                        <a href="/Admin/UserManagement?tab=activity-logs&logPage=@(Model.LogsCurrentPage-1)" class="pagination-btn"><i class="fas fa-chevron-left"></i></a>
+                                    }
+                                    else
+                                    {
+                                        <button class="pagination-btn" disabled><i class="fas fa-chevron-left"></i></button>
+                                    }
+                                    
+                                    @for (int i = 1; i <= Model.LogsTotalPages; i++)
+                                    {
+                                        if (i == Model.LogsCurrentPage)
+                                        {
+                                            <span class="pagination-btn active">@i</span>
+                                        }
+                                        else
+                                        {
+                                            <a href="/Admin/UserManagement?tab=activity-logs&logPage=@i" class="pagination-btn">@i</a>
+                                        }
+                                    }
+                                    
+                                    @if (Model.LogsCurrentPage < Model.LogsTotalPages)
+                                    {
+                                        <a href="/Admin/UserManagement?tab=activity-logs&logPage=@(Model.LogsCurrentPage+1)" class="pagination-btn"><i class="fas fa-chevron-right"></i></a>
+                                    }
+                                    else
+                                    {
+                                        <button class="pagination-btn" disabled><i class="fas fa-chevron-right"></i></button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Modal for Add/Edit User -->
+            <div class="modal" id="user-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="modal-title">Add New User</h2>
+                        <button class="close-modal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="user-form" method="post" action="/Admin/UserManagement/SaveUser">
+                            <input type="hidden" id="user-id" name="Id" value="">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="first-name">First Name</label>
+                                    <input type="text" id="first-name" name="FirstName" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="last-name">Last Name</label>
+                                    <input type="text" id="last-name" name="LastName" class="form-control" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="email">Email Address</label>
+                                    <input type="email" id="email" name="Email" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="phone">Phone Number</label>
+                                    <input type="tel" id="phone" name="PhoneNumber" class="form-control">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="address">Address</label>
+                                <input type="text" id="address" name="Address" class="form-control">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="role">Role</label>
+                                    <select id="role" name="Role" class="form-select" required>
+                                        <option value="">Select a role</option>
+                                        @foreach (var role in Model.Roles)
+                                        {
+                                            <option value="@role.Name">@role.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="status">Status</label>
+                                    <select id="status" name="Status" class="form-select" required>
+                                        <option value="Active">Active</option>
+                                        <option value="Suspended">Suspended</option>
+                                        <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                           <div class="form-row password-fields">
+    <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="Password" class="form-control">
+        <small class="form-text">Leave blank to keep current password when editing users</small>
+    </div>
+    <div class="form-group">
+        <label for="confirm-password">Confirm Password</label>
+        <input type="password" id="confirm-password" name="ConfirmPassword" class="form-control">
+    </div>
+</div>
+
+<div class="form-group">
+    <div class="checkbox-group">
+        <input type="checkbox" id="send-credentials" name="SendCredentials" class="form-check-input">
+        <label for="send-credentials">Send login credentials to user's email</label>
+    </div>
+</div>
+
+<div class="form-actions">
+    <button type="button" class="btn secondary-btn close-modal-btn">Cancel</button>
+    <button type="submit" class="btn primary-btn">Save User</button>
+</div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for Delete Confirmation -->
+            <div class="modal" id="delete-confirmation-modal">
+                <div class="modal-content modal-sm">
+                    <div class="modal-header">
+                        <h2>Confirm Deletion</h2>
+                        <button class="close-modal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="confirmation-message">
+                            <i class="fas fa-exclamation-triangle warning-icon"></i>
+                            <p>Are you sure you want to delete this user? This action cannot be undone.</p>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn secondary-btn close-modal-btn">Cancel</button>
+                            <button type="button" class="btn danger-btn" id="confirm-delete">Delete User</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for Reset Password -->
+            <div class="modal" id="reset-password-modal">
+                <div class="modal-content modal-sm">
+                    <div class="modal-header">
+                        <h2>Reset User Password</h2>
+                        <button class="close-modal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="reset-password-form" method="post" action="/Admin/UserManagement/ResetPassword">
+                            <input type="hidden" id="reset-user-id" name="UserId" value="">
+
+                            <div class="form-group">
+                                <label for="new-password">New Password</label>
+                                <input type="password" id="new-password" name="NewPassword" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirm-new-password">Confirm New Password</label>
+                                <input type="password" id="confirm-new-password" name="ConfirmNewPassword" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="force-change" name="ForcePasswordChange" class="form-check-input" checked>
+                                    <label for="force-change">Force user to change password on next login</label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="send-password-email" name="SendEmail" class="form-check-input" checked>
+                                    <label for="send-password-email">Send new password to user's email</label>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn secondary-btn close-modal-btn">Cancel</button>
+                                <button type="submit" class="btn primary-btn">Reset Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for Role Management -->
+            <div class="modal" id="role-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="role-modal-title">Create New Role</h2>
+                        <button class="close-modal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="role-form" method="post" action="/Admin/UserManagement/SaveRole">
+                            <input type="hidden" id="original-role-name" name="OriginalRoleName" value="">
+
+                            <div class="form-group">
+                                <label for="role-name">Role Name</label>
+                                <input type="text" id="role-name" name="RoleName" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="role-description">Description</label>
+                                <textarea id="role-description" name="Description" class="form-control" rows="3"></textarea>
+                            </div>
+
+                            <div class="permissions-section">
+                                <h3>Permissions</h3>
+
+                                <div class="permission-categories">
+                                    <div class="permission-category">
+                                        <div class="category-header">
+                                            <h4>User Management</h4>
+                                            <div class="checkbox-group">
+                                                <input type="checkbox" id="select-all-user-permissions" class="select-all-category">
+                                                <label for="select-all-user-permissions">Select All</label>
+                                            </div>
+                                        </div>
+                                        <div class="permission-items">
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-view-users" name="Permissions[]" value="view-users" class="permission-checkbox">
+                                                <label for="perm-view-users">View Users</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-create-users" name="Permissions[]" value="create-users" class="permission-checkbox">
+                                                <label for="perm-create-users">Create Users</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-edit-users" name="Permissions[]" value="edit-users" class="permission-checkbox">
+                                                <label for="perm-edit-users">Edit Users</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-delete-users" name="Permissions[]" value="delete-users" class="permission-checkbox">
+                                                <label for="perm-delete-users">Delete Users</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-manage-roles" name="Permissions[]" value="manage-roles" class="permission-checkbox">
+                                                <label for="perm-manage-roles">Manage Roles</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="permission-category">
+                                        <div class="category-header">
+                                            <h4>Announcements</h4>
+                                            <div class="checkbox-group">
+                                                <input type="checkbox" id="select-all-announcement-permissions" class="select-all-category">
+                                                <label for="select-all-announcement-permissions">Select All</label>
+                                            </div>
+                                        </div>
+                                        <div class="permission-items">
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-view-announcements" name="Permissions[]" value="view-announcements" class="permission-checkbox">
+                                                <label for="perm-view-announcements">View Announcements</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-create-announcements" name="Permissions[]" value="create-announcements" class="permission-checkbox">
+                                                <label for="perm-create-announcements">Create Announcements</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-edit-announcements" name="Permissions[]" value="edit-announcements" class="permission-checkbox">
+                                                <label for="perm-edit-announcements">Edit Announcements</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-delete-announcements" name="Permissions[]" value="delete-announcements" class="permission-checkbox">
+                                                <label for="perm-delete-announcements">Delete Announcements</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="permission-category">
+                                        <div class="category-header">
+                                            <h4>Billing</h4>
+                                            <div class="checkbox-group">
+                                                <input type="checkbox" id="select-all-billing-permissions" class="select-all-category">
+                                                <label for="select-all-billing-permissions">Select All</label>
+                                            </div>
+                                        </div>
+                                        <div class="permission-items">
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-view-billing" name="Permissions[]" value="view-billing" class="permission-checkbox">
+                                                <label for="perm-view-billing">View Billing</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-create-invoices" name="Permissions[]" value="create-invoices" class="permission-checkbox">
+                                                <label for="perm-create-invoices">Create Invoices</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-process-payments" name="Permissions[]" value="process-payments" class="permission-checkbox">
+                                                <label for="perm-process-payments">Process Payments</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-manage-billing-settings" name="Permissions[]" value="manage-billing-settings" class="permission-checkbox">
+                                                <label for="perm-manage-billing-settings">Manage Billing Settings</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Additional Permission Categories -->
+                                    <div class="permission-category">
+                                        <div class="category-header">
+                                            <h4>Facilities</h4>
+                                            <div class="checkbox-group">
+                                                <input type="checkbox" id="select-all-facilities-permissions" class="select-all-category">
+                                                <label for="select-all-facilities-permissions">Select All</label>
+                                            </div>
+                                        </div>
+                                        <div class="permission-items">
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-view-facilities" name="Permissions[]" value="view-facilities" class="permission-checkbox">
+                                                <label for="perm-view-facilities">View Facilities</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-manage-facilities" name="Permissions[]" value="manage-facilities" class="permission-checkbox">
+                                                <label for="perm-manage-facilities">Manage Facilities</label>
+                                            </div>
+                                            <div class="permission-item">
+                                                <input type="checkbox" id="perm-approve-reservations" name="Permissions[]" value="approve-reservations" class="permission-checkbox">
+                                                <label for="perm-approve-reservations">Approve Reservations</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn secondary-btn close-modal-btn">Cancel</button>
+                                <button type="submit" class="btn primary-btn">Save Role</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Permissions Detailed View Template (for AJAX loading) -->
+            <template id="role-permissions-template">
+                <div class="role-permissions-view">
+                    <div class="role-permissions-header">
+                        <h3>{{roleName}} Permissions</h3>
+                        <div class="role-actions" data-system-role="{{isSystemRole}}">
+                            <button class="btn primary-btn edit-permissions-btn" data-role-name="{{roleName}}">
+                                <i class="fas fa-edit"></i> Edit Permissions
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="role-description">
+                        <p>{{roleDescription}}</p>
+                    </div>
+
+                    <div class="permissions-grid">
+                        {{#permissionCategories}}
+                        <div class="permission-category-card">
+                            <h4>{{categoryName}}</h4>
+                            <ul class="permission-list">
+                                {{#permissions}}
+                                <li class="{{#granted}}granted{{/granted}}{{^granted}}denied{{/granted}}">
+                                    <i class="fas {{#granted}}fa-check-circle{{/granted}}{{^granted}}fa-times-circle{{/granted}}"></i>
+                                    {{permissionName}}
+                                </li>
+                                {{/permissions}}
+                            </ul>
+                        </div>
+                        {{/permissionCategories}}
+                    </div>
+
+                    <div class="role-users">
+                        <h4>Users with this role ({{userCount}})</h4>
+                        <div class="role-users-list">
+                            {{#users}}
+                            <div class="user-badge">
+                                <img src="{{profileImage}}" alt="{{userName}}">
+                                <span>{{userName}}</span>
+                            </div>
+                            {{/users}}
+                            {{#moreUsers}}
+                            <div class="more-users">+{{moreUsersCount}} more</div>
+                            {{/moreUsers}}
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- JavaScript inclusion -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/3.2.1/mustache.min.js"></script>
+            <script src="~/js/admin.js"></script>
+            <script src="~/js/user-management.js"></script>
+        </div>
+    </div>
+</body>
+</html>
