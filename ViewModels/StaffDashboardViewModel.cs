@@ -1,4 +1,6 @@
 ﻿using GreenMeadowsPortal.Models;
+using System;
+using System.Collections.Generic;
 
 namespace GreenMeadowsPortal.ViewModels
 {
@@ -16,13 +18,13 @@ namespace GreenMeadowsPortal.ViewModels
         public string StaffRole { get; set; } = string.Empty;
         public decimal DuePaymentsTotal { get; set; }
         public int UpcomingEvents { get; set; }
+
+        // Recent activities for dashboard
         public List<ServiceRequest> RecentServiceRequests { get; set; } = new List<ServiceRequest>();
-        public List<DashboardUser> RecentUsers { get; set; } = new List<DashboardUser>(); // Changed from User to DashboardUser
+        public List<DashboardUser> RecentUsers { get; set; } = new List<DashboardUser>();
         public List<Event> UpcomingEventsList { get; set; } = new List<Event>();
-        public decimal TotalBilledAmount { get; set; }
-        public decimal TotalCollectedAmount { get; set; }
-        public double CollectionRate { get; set; }
-        public int OverdueAccountsCount { get; set; }
+
+        // Daily statistics
         public int DailyActiveUsers { get; set; }
         public int NewUsersToday { get; set; }
         public int TotalLoginToday { get; set; }
@@ -34,7 +36,7 @@ namespace GreenMeadowsPortal.ViewModels
         public int UpcomingBookings { get; set; }
     }
 
-    // Keep the existing classes unchanged
+    // Service request model for the dashboard
     public class ServiceRequest
     {
         public int Id { get; set; }
@@ -48,6 +50,17 @@ namespace GreenMeadowsPortal.ViewModels
         public string PriorityClass { get; set; } = string.Empty;
     }
 
+    // User model for the dashboard activity
+    public class DashboardUser
+    {
+        public string Id { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string ProfileImageUrl { get; set; } = string.Empty;
+        public string ActivityDescription { get; set; } = string.Empty;
+        public string ActivityTime { get; set; } = string.Empty;
+    }
+
+    // Event model for the dashboard
     public class Event
     {
         public int Id { get; set; }

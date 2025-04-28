@@ -97,6 +97,13 @@ namespace GreenMeadowsPortal.Controllers
                 ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
             };
 
+            // Add notification count
+            model.NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id);
+
+            // Load recent announcements
+            var recentAnnouncements = await _announcementService.GetRecentAnnouncementsAsync(3);
+            model.RecentAnnouncements = recentAnnouncements;
+
             return View(model);
         }
 
@@ -114,8 +121,12 @@ namespace GreenMeadowsPortal.Controllers
                 FirstName = user.FirstName ?? "Admin",
                 Role = roles.FirstOrDefault() ?? "Admin",
                 TotalUsers = 150,
-                ActiveReservations = 20
+                ActiveReservations = 20,
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
             };
+
+            // Add notification count
+            model.NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id);
 
             return View(model);
         }
@@ -133,9 +144,10 @@ namespace GreenMeadowsPortal.Controllers
                 StaffUser = user,
                 FirstName = user.FirstName ?? "Staff",
                 Role = roles.FirstOrDefault() ?? "Staff",
-                NotificationCount = 5,
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
                 TotalResidents = 100,
-                PendingRequests = 10
+                PendingRequests = 10,
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
             };
 
             return View(model);
@@ -287,7 +299,8 @@ namespace GreenMeadowsPortal.Controllers
                 LogsTotalPages = 1,
                 LogsPageStartRecord = 0,
                 LogsPageEndRecord = 0,
-                TotalLogs = 0
+                TotalLogs = 0,
+                CurrentUserProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
             };
 
             // Populate your model with actual user data
