@@ -35,6 +35,22 @@ namespace GreenMeadowsPortal.Controllers
             _notificationService = notificationService;
         }
 
+        // Default action - redirect to appropriate dashboard based on role
+        public async Task<IActionResult> Index()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            if (roles.Contains("Admin"))
+                return RedirectToAction("AdminDashboard");
+            else if (roles.Contains("Staff"))
+                return RedirectToAction("StaffDashboard");
+            else
+                return RedirectToAction("HomeownerDashboard");
+        }
+
         // ✅ Profile View for Dashboard
         public async Task<IActionResult> Profile()
         {
@@ -125,59 +141,10 @@ namespace GreenMeadowsPortal.Controllers
             return View(model);
         }
 
-        // ✅ Announcement - Updated to use AnnouncementService
-        public async Task<IActionResult> Announcement()
+        // Redirects to the Announcement controller's Index action instead of having a duplicate view
+        public IActionResult Announcement()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return RedirectToAction("Login", "Account");
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var unreadCount = 0;
-
-            try
-            {
-                unreadCount = await _notificationService.GetUnreadCountAsync(user.Id);
-            }
-            catch (Exception ex)
-            {
-                // Log the error but continue
-                Console.WriteLine($"Error getting notification count: {ex.Message}");
-            }
-
-            var model = new AnnouncementViewModel
-            {
-                CurrentUser = user,
-                FirstName = user.FirstName ?? "User",
-                Role = roles.FirstOrDefault() ?? "User",
-                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                NotificationCount = unreadCount
-            };
-
-            // Try to get recent announcements
-            try
-            {
-                var recentAnnouncements = await _announcementService.GetAnnouncementsForHomeownersAsync(filter: "all", page: 1, pageSize: 5);
-                model.Announcements = recentAnnouncements.Select(a => new Announcement
-                {
-                    Id = a.Id,
-                    Title = a.Title,
-                    Content = a.Content,
-                    Type = a.Priority == AnnouncementPriority.Urgent ? "Urgent" :
-                           a.Priority == AnnouncementPriority.Important ? "Important" : "General",
-                    Date = a.PublishDate ?? a.CreatedDate,
-                    PostedBy = a.AuthorName,
-                    IsActive = true,
-                    ImageUrl = a.ImageUrl
-                }).ToList();
-            }
-            catch (Exception ex)
-            {
-                // Log the error but continue with empty announcements
-                Console.WriteLine($"Error getting announcements: {ex.Message}");
-                model.Announcements = new List<Announcement>();
-            }
-
-            return View(model);
+            return RedirectToAction("Index", "Announcement");
         }
 
         // ✅ Billing
@@ -197,7 +164,7 @@ namespace GreenMeadowsPortal.Controllers
                 LastName = user.LastName ?? "",
                 Role = roles.FirstOrDefault() ?? "User",
                 ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                NotificationCount = 0,
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
                 SelectedYear = selectedYear
             };
 
@@ -309,7 +276,7 @@ namespace GreenMeadowsPortal.Controllers
                 PendingUsers = new List<PendingUserViewModel>(),
                 Roles = new List<RoleViewModel>(),
                 ActivityLogs = new List<ActivityLogViewModel>(),
-                NotificationCount = 0,
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
                 CurrentPage = 1,
                 TotalPages = 1,
                 PageStartRecord = 0,

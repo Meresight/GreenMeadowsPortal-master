@@ -112,7 +112,8 @@ namespace GreenMeadowsPortal.Controllers
             var viewModel = new AnnouncementCreateViewModel
             {
                 FirstName = user.FirstName,
-                Role = roles.FirstOrDefault() ?? "User"
+                Role = roles.FirstOrDefault() ?? "User",
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
             };
 
             return View(viewModel);
@@ -234,7 +235,10 @@ namespace GreenMeadowsPortal.Controllers
                 ExistingAttachmentUrl = announcement.AttachmentUrl,
                 ExistingImageUrl = announcement.ImageUrl,
                 AuthorName = $"{announcement.AuthorName}",
-                CreatedDate = announcement.CreatedDate
+                CreatedDate = announcement.CreatedDate,
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                FirstName = user.FirstName,
+                Role = roles.FirstOrDefault() ?? "User"
             };
 
             return View(viewModel);

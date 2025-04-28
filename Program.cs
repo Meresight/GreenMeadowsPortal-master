@@ -31,6 +31,14 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AnnouncementService>();
 builder.Services.AddScoped<NotificationService>();
 
+// Add API controllers with JSON formatting
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
+
 var app = builder.Build();
 
 // Seed Default Roles and Admin on Startup
@@ -57,13 +65,11 @@ app.UseAuthorization();
 
 // Configure Default Route
 app.MapControllerRoute(
-    name: "dashboard",
-    pattern: "Dashboard/{action=AdminDashboard}/{id?}",
-    defaults: new { controller = "Dashboard" });
-
-app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
+
+// Add API controller routes
+app.MapControllers();
 
 app.Run();
 
