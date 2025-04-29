@@ -41,7 +41,8 @@ namespace GreenMeadowsPortal.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction("Login", "Account");
 
-            var roles = await _userManager.GetRolesAsync(user);
+            var roles = await _userManager.GetRolesAsync(user ?? throw new ArgumentNullException(nameof(user)));
+
 
             if (roles.Contains("Admin"))
                 return RedirectToAction("AdminDashboard");
@@ -163,41 +164,24 @@ namespace GreenMeadowsPortal.Controllers
         [Authorize]
         public async Task<IActionResult> Billing(int? year)
         {
+            // Redirect to the role-specific billing page instead of showing content directly
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return NotFound("User not found");
+            if (user == null) return RedirectToAction("Login", "Account");
 
             var roles = await _userManager.GetRolesAsync(user);
-            var currentYear = DateTime.Now.Year;
-            var selectedYear = year ?? currentYear;
-
-            var model = new BillingViewModel
-            {
-                FirstName = user.FirstName ?? "",
-                LastName = user.LastName ?? "",
-                Role = roles.FirstOrDefault() ?? "User",
-                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
-                SelectedYear = selectedYear
-            };
 
             if (roles.Contains("Admin"))
             {
-                await PopulateAdminBillingData(model, selectedYear);
-            }
-            else if (roles.Contains("Homeowner"))
-            {
-                await PopulateHomeownerBillingData(model, user.Id, selectedYear);
+                return RedirectToAction("AdminBilling", new { year });
             }
             else if (roles.Contains("Staff"))
             {
-                await PopulateStaffBillingData(model, user.Id, selectedYear);
+                return RedirectToAction("StaffBilling", new { year });
             }
             else
             {
-                await PopulateDefaultBillingData(model, user.Id, selectedYear);
+                return RedirectToAction("HomeownerBilling", new { year });
             }
-
-            return View(model);
         }
 
         // Helper methods to populate role-specific billing data
@@ -308,7 +292,132 @@ namespace GreenMeadowsPortal.Controllers
 
             return View(model);
         }
+        // Add this to your DashboardController.cs
 
+        // This method will handle redirecting users to the appropriate billing page based on role
+        [Authorize]
+        public async Task<IActionResult> BillingRedirect()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            if (roles.Contains("Admin"))
+            {
+                return RedirectToAction("AdminBilling");
+            }
+            else if (roles.Contains("Staff"))
+            {
+                return RedirectToAction("StaffBilling");
+            }
+            else
+            {
+                return RedirectToAction("HomeownerBilling");
+            }
+        }
+        // Add these methods to your DashboardController.cs
+
+        // Method to prepare Admin billing view model
+        private async Task<BillingViewModel> PrepareAdminBillingViewModel(int? year)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user);
+            var currentYear = DateTime.Now.Year;
+            var selectedYear = year ?? currentYear;
+
+            var model = new BillingViewModel
+            {
+                FirstName = user.FirstName ?? "",
+                LastName = user.LastName ?? "",
+                Role = roles.FirstOrDefault() ?? "Admin",
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
+                SelectedYear = selectedYear
+            };
+
+            // Populate admin-specific billing data
+            await PopulateAdminBillingData(model, selectedYear);
+
+            return model;
+        }
+
+        // Method to prepare Staff billing view model
+        private async Task<BillingViewModel> PrepareStaffBillingViewModel(int? year)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user);
+            var currentYear = DateTime.Now.Year;
+            var selectedYear = year ?? currentYear;
+
+            var model = new BillingViewModel
+            {
+                FirstName = user.FirstName ?? "",
+                LastName = user.LastName ?? "",
+                Role = roles.FirstOrDefault() ?? "Staff",
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
+                SelectedYear = selectedYear
+            };
+
+            // Populate staff-specific billing data
+            await PopulateStaffBillingData(model, user.Id, selectedYear);
+
+            return model;
+        }
+
+        // Method to prepare Homeowner billing view model
+        private async Task<BillingViewModel> PrepareHomeownerBillingViewModel(int? year)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user);
+            var currentYear = DateTime.Now.Year;
+            var selectedYear = year ?? currentYear;
+
+            var model = new BillingViewModel
+            {
+                FirstName = user.FirstName ?? "",
+                LastName = user.LastName ?? "",
+                Role = roles.FirstOrDefault() ?? "Homeowner",
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
+                SelectedYear = selectedYear
+            };
+
+            // Populate homeowner-specific billing data
+            await PopulateHomeownerBillingData(model, user.Id, selectedYear);
+
+            return model;
+        }
+        // Create specific billing actions for each role
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AdminBilling(int? year)
+        {
+            // Admin-specific billing view
+            var model = await PrepareAdminBillingViewModel(year);
+            return View("AdminBilling", model);
+        }
+
+        [Authorize(Roles = "Staff")]
+        public async Task<IActionResult> StaffBilling(int? year)
+        {
+            // Staff-specific billing view
+            var model = await PrepareStaffBillingViewModel(year);
+            return View("StaffBilling", model);
+        }
+
+        [Authorize(Roles = "Homeowner")]
+        public async Task<IActionResult> HomeownerBilling(int? year)
+        {
+            // Homeowner-specific billing view
+            var model = await PrepareHomeownerBillingViewModel(year);
+            return View("Billing", model);
+        }
+
+        // Then update your sidebar navigation in all layouts to use BillingRedirect
+        // <a asp-controller="Dashboard" asp-action="BillingRedirect">
+        //    <i class="fas fa-file-invoice-dollar"></i> Billing
+        // </a>
         // ✅ Logout Method
         public async Task<IActionResult> Logout()
         {

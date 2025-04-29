@@ -100,7 +100,7 @@ namespace GreenMeadowsPortal.Controllers
         }
 
         // GET: /Announcement/Create
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -122,7 +122,7 @@ namespace GreenMeadowsPortal.Controllers
         // POST: /Announcement/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create(AnnouncementCreateViewModel model)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -132,7 +132,6 @@ namespace GreenMeadowsPortal.Controllers
             // If staff, check if the announcement requires approval based on priority
             var roles = await _userManager.GetRolesAsync(user);
             var isAdmin = roles.Contains("Admin");
-
             if (!isAdmin && model.Priority == AnnouncementPriority.Urgent)
             {
                 // Staff can't directly publish urgent announcements
@@ -202,7 +201,8 @@ namespace GreenMeadowsPortal.Controllers
         }
 
         // GET: /Announcement/Edit/5
-        [Authorize(Roles = "Admin,Staff")]
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -216,7 +216,7 @@ namespace GreenMeadowsPortal.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var isAdmin = roles.Contains("Admin");
 
-            // Staff can only edit their own announcements
+            // Admins can edit any announcement
             if (!isAdmin && announcement.AuthorId != user.Id)
             {
                 return Forbid();
@@ -230,7 +230,7 @@ namespace GreenMeadowsPortal.Controllers
                 PublishDate = announcement.PublishDate,
                 ExpirationDate = announcement.ExpirationDate,
                 Priority = announcement.Priority,
-                Status = announcement.Status,
+                Status = announcement.Status,  // Keep the current status
                 TargetAudience = announcement.TargetAudience,
                 ExistingAttachmentUrl = announcement.AttachmentUrl,
                 ExistingImageUrl = announcement.ImageUrl,
@@ -241,13 +241,16 @@ namespace GreenMeadowsPortal.Controllers
                 Role = roles.FirstOrDefault() ?? "User"
             };
 
+            // Add user role to ViewBag for breadcrumbs
+            ViewBag.UserRole = roles.FirstOrDefault() ?? "Admin";
+
             return View(viewModel);
         }
 
         // POST: /Announcement/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, AnnouncementEditViewModel model)
         {
             if (id != model.Id)
@@ -259,27 +262,9 @@ namespace GreenMeadowsPortal.Controllers
             if (user == null)
                 return RedirectToAction("Login", "Account");
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var isAdmin = roles.Contains("Admin");
-
             var announcement = await _announcementService.GetAnnouncementByIdAsync(id);
             if (announcement == null)
                 return NotFound();
-
-            // Staff can only edit their own announcements
-            if (!isAdmin && announcement.AuthorId != user.Id)
-            {
-                return Forbid();
-            }
-
-            // Staff cannot change certain properties
-            if (!isAdmin)
-            {
-                if (model.Priority == AnnouncementPriority.Urgent && announcement.Priority != AnnouncementPriority.Urgent)
-                {
-                    ModelState.AddModelError("Priority", "Staff members cannot set announcements to Urgent priority.");
-                }
-            }
 
             if (ModelState.IsValid)
             {
@@ -308,25 +293,17 @@ namespace GreenMeadowsPortal.Controllers
                     imageUrl = await SaveFileAsync(model.Image, "images/announcements");
                 }
 
+                // Ensure Status can be changed from Draft to Published
+                // Always respect the status selected in the form for admin users
+
                 // Update announcement properties
                 announcement.Title = model.Title;
                 announcement.Content = model.Content;
                 announcement.PublishDate = model.PublishDate ?? DateTime.Now;
                 announcement.ExpirationDate = model.ExpirationDate;
                 announcement.Priority = model.Priority;
-
-                if (isAdmin)
-                {
-                    announcement.Status = model.Status;
-                    announcement.TargetAudience = model.TargetAudience;
-                }
-                else if (announcement.Status == AnnouncementStatus.Draft)
-                {
-                    // Staff can only publish their drafts, not change other statuses
-                    announcement.Status = model.Status == AnnouncementStatus.Published ?
-                        AnnouncementStatus.Published : AnnouncementStatus.Draft;
-                }
-
+                announcement.Status = model.Status; // Allow status change (Draft to Published or vice versa)
+                announcement.TargetAudience = model.TargetAudience;
                 announcement.AttachmentUrl = attachmentUrl;
                 announcement.ImageUrl = imageUrl;
 
@@ -352,21 +329,7 @@ namespace GreenMeadowsPortal.Controllers
                 if (announcement.Status == AnnouncementStatus.Published &&
                     announcement.PublishDate <= DateTime.Now)
                 {
-                    await SendAnnouncementNotificationsAsync(new AdminAnnouncement
-                    {
-                        Id = announcement.Id,
-                        Title = announcement.Title,
-                        Content = announcement.Content,
-                        CreatedDate = announcement.CreatedDate,
-                        PublishDate = announcement.PublishDate,
-                        ExpirationDate = announcement.ExpirationDate,
-                        AuthorId = announcement.AuthorId,
-                        Priority = announcement.Priority,
-                        Status = announcement.Status,
-                        TargetAudience = announcement.TargetAudience,
-                        AttachmentUrl = announcement.AttachmentUrl,
-                        ImageUrl = announcement.ImageUrl
-                    });
+                    await SendAnnouncementNotificationsAsync(adminAnnouncement);
                 }
 
                 TempData["SuccessMessage"] = "Announcement updated successfully.";

@@ -163,11 +163,10 @@
                                         <option value="@AnnouncementStatus.Archived">Archived</option>
                                     </select>
                                     <span asp-validation-for="Status" class="text-danger"></span>
-                                    <small class="form-text text-muted" id="status-message" style="display: none;">
-                                        Note: Only administrators can change the status of an announcement.
+                                    <small class="form-text text-muted">
+                                        Select "Published" to make this announcement visible to users.
                                     </small>
                                 </div>
-                            </div>
 
                             <div class="form-group">
                                 <label asp-for="TargetAudience">Target Audience</label>
