@@ -1,368 +1,267 @@
-﻿// File: wwwroot/js/user-management.js
+﻿// User Management JavaScript
 
-// Modern non-deprecated document ready syntax
-$(function () {
-    // Tab initialization from URL function
-    function initTabFromUrl() {
-        // Get the 'tab' parameter from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const tabParam = urlParams.get('tab');
-
-        // If tab parameter exists and is valid, activate that tab
-        if (tabParam) {
-            const tabBtn = $(`.tab-btn[data-tab="${tabParam}"]`);
-            if (tabBtn.length) {
-                // Trigger click event programmatically using modern approach
-                tabBtn.trigger('click');
-            }
-        }
-    }
-
-    // Initialize tab from URL parameter
-    initTabFromUrl();
-
-    // Tab switching functionality
-    $('.tab-btn').on('click', function () {
-        const tabId = $(this).data('tab');
-
-        // Update active tab button
-        $('.tab-btn').removeClass('active');
-        $(this).addClass('active');
-
-        // Show corresponding tab content
-        $('.tab-pane').removeClass('active');
-        $(`#${tabId}`).addClass('active');
-
-        // Update URL with tab parameter without page reload
-        const url = new URL(window.location);
-        url.searchParams.set('tab', tabId);
-        window.history.pushState({}, '', url);
-    });
-
-    // User search functionality
-    $('#user-search').on('keyup', function () {
-        const searchTerm = $(this).val().toLowerCase();
-
-        $('.data-table tbody tr').each(function () {
-            const userName = $(this).find('.user-name').text().toLowerCase();
-            const userEmail = $(this).find('td:nth-child(3)').text().toLowerCase();
-            const userRole = $(this).find('td:nth-child(4)').text().toLowerCase();
-
-            if (userName.includes(searchTerm) || userEmail.includes(searchTerm) || userRole.includes(searchTerm)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
-    });
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('User Management JS loaded');
 
     // Filter functionality
-    $('#role-filter, #status-filter').on('change', function () {
-        applyFilters();
-    });
+    const roleFilter = document.getElementById('role-filter');
+    const statusFilter = document.getElementById('status-filter');
+
+    if (roleFilter && statusFilter) {
+        roleFilter.addEventListener('change', applyFilters);
+        statusFilter.addEventListener('change', applyFilters);
+    }
 
     function applyFilters() {
-        const roleFilter = $('#role-filter').val();
-        const statusFilter = $('#status-filter').val();
+        const roleValue = roleFilter.value;
+        const statusValue = statusFilter.value;
+        const userRows = document.querySelectorAll('.users-table tbody tr');
 
-        $('.data-table tbody tr').each(function () {
-            const userRole = $(this).find('td:nth-child(4)').text();
-            const userStatus = $(this).find('td:nth-child(5) .badge').text();
+        userRows.forEach(row => {
+            const userRole = row.querySelector('td:nth-child(2)').textContent.trim();
+            const userStatus = row.querySelector('td:nth-child(3) .status').textContent.trim();
 
-            const roleMatch = roleFilter === 'all' || userRole === roleFilter;
-            const statusMatch = statusFilter === 'all' || userStatus === statusFilter;
+            const roleMatch = roleValue === 'All Roles' || userRole === roleValue;
+            const statusMatch = statusValue === 'All Statuses' || userStatus === statusValue;
 
             if (roleMatch && statusMatch) {
-                $(this).show();
+                row.style.display = '';
             } else {
-                $(this).hide();
+                row.style.display = 'none';
             }
         });
     }
 
-    // Select all users checkbox
-    $('#select-all-users').on('change', function () {
-        const isChecked = $(this).prop('checked');
-        $('.user-checkbox').prop('checked', isChecked);
-        updateBulkActions();
-    });
-
-    // Individual user checkboxes
-    $('.user-checkbox').on('change', function () {
-        updateBulkActions();
-    });
-
-    function updateBulkActions() {
-        const checkedCount = $('.user-checkbox:checked').length;
-        $('#apply-bulk').prop('disabled', checkedCount === 0);
+    // Search functionality
+    const searchInput = document.getElementById('user-search');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', performSearch);
     }
 
-    // Apply bulk actions
-    $('#apply-bulk').on('click', function () {
-        const action = $('#bulk-action').val();
-        if (!action) return;
+    function performSearch() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const userRows = document.querySelectorAll('.users-table tbody tr');
 
-        const selectedUserIds = [];
-        $('.user-checkbox:checked').each(function () {
-            selectedUserIds.push($(this).val());
+        userRows.forEach(row => {
+            const userName = row.querySelector('.user-name').textContent.toLowerCase();
+            const userEmail = row.querySelector('.user-email').textContent.toLowerCase();
+
+            if (userName.includes(searchTerm) || userEmail.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Reset Password Modal
+    const resetPasswordBtns = document.querySelectorAll('.reset-password-btn');
+    const resetPasswordModal = document.getElementById('reset-password-modal');
+    const resetUserId = document.getElementById('reset-user-id');
+
+    if (resetPasswordBtns && resetPasswordModal && resetUserId) {
+        resetPasswordBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const userId = this.getAttribute('data-user-id');
+                resetUserId.value = userId;
+                resetPasswordModal.classList.add('show');
+            });
+        });
+    }
+
+    // Delete User Confirmation
+    const deleteUserBtns = document.querySelectorAll('.delete-user-btn');
+    const deleteConfirmationModal = document.getElementById('delete-confirmation-modal');
+    const confirmDeleteBtn = document.getElementById('confirm-delete');
+
+    if (deleteUserBtns && deleteConfirmationModal && confirmDeleteBtn) {
+        deleteUserBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const userId = this.getAttribute('data-user-id');
+                confirmDeleteBtn.setAttribute('data-user-id', userId);
+                deleteConfirmationModal.classList.add('show');
+            });
         });
 
-        if (action === 'delete') {
-            if (confirm(`Are you sure you want to delete ${selectedUserIds.length} user(s)? This action cannot be undone.`)) {
-                submitBulkAction(action, selectedUserIds);
-            }
-        } else {
-            submitBulkAction(action, selectedUserIds);
-        }
-    });
+        confirmDeleteBtn.addEventListener('click', function () {
+            const userId = this.getAttribute('data-user-id');
+            deleteUser(userId);
+        });
+    }
 
-    function submitBulkAction(action, userIds) {
-        $.ajax({
-            url: '/Admin/UserManagement/BulkAction',
-            type: 'POST',
-            data: {
-                action: action,
-                userIds: userIds
+    function deleteUser(userId) {
+        // Show loading indicator
+        confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+        confirmDeleteBtn.disabled = true;
+
+        // Send AJAX request to delete user
+        fetch('/UserManagement/DeleteUser', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getAntiForgeryToken()
             },
-            success: function (response) {
-                if (response.success) {
-                    showAlert('success', response.message);
-                    // Reload page after successful action
-                    setTimeout(function () {
-                        location.reload();
-                    }, 1500);
+            body: JSON.stringify({ id: userId })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message || 'User deleted successfully.');
+
+                    // Close modal
+                    deleteConfirmationModal.classList.remove('show');
+
+                    // Remove the row from the table
+                    const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+                    if (userRow) {
+                        userRow.remove();
+                    } else {
+                        // Reload the page if the row can't be found
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    }
                 } else {
-                    showAlert('danger', response.message);
+                    showAlert('danger', data.message || 'An error occurred while deleting the user.');
+                    deleteConfirmationModal.classList.remove('show');
                 }
-            },
-            error: function () {
-                showAlert('danger', 'An error occurred while processing your request.');
-            }
-        });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', 'An error occurred while deleting the user.');
+                deleteConfirmationModal.classList.remove('show');
+            })
+            .finally(() => {
+                // Reset button state
+                confirmDeleteBtn.innerHTML = 'Delete User';
+                confirmDeleteBtn.disabled = false;
+            });
     }
 
-    // User action buttons
-    $('.reset-password-btn').on('click', function () {
-        const userId = $(this).data('user-id');
-        $('#reset-user-id').val(userId);
-        $('#reset-password-modal').addClass('show');
-    });
+    // Change User Status
+    const statusChangeBtns = document.querySelectorAll('.change-status-btn');
 
-    $('.suspend-user-btn').on('click', function () {
-        const userId = $(this).data('user-id');
-        if (confirm('Are you sure you want to suspend this user?')) {
-            changeUserStatus(userId, 'Suspended');
-        }
-    });
+    if (statusChangeBtns) {
+        statusChangeBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const userId = this.getAttribute('data-user-id');
+                const newStatus = this.getAttribute('data-status');
 
-    $('.activate-user-btn').on('click', function () {
-        const userId = $(this).data('user-id');
-        if (confirm('Are you sure you want to activate this user?')) {
-            changeUserStatus(userId, 'Active');
-        }
-    });
-
-    $('.delete-user-btn').on('click', function () {
-        const userId = $(this).data('user-id');
-        $('#confirm-delete').data('user-id', userId);
-        $('#delete-confirmation-modal').addClass('show');
-    });
-
-    // Pending request actions
-    $('.approve-request-btn').on('click', function () {
-        const userId = $(this).data('user-id');
-        const notes = $(`.request-note-text[data-user-id="${userId}"]`).val();
-
-        if (confirm('Are you sure you want to approve this user?')) {
-            approveUser(userId, notes);
-        }
-    });
-
-    $('.reject-request-btn').on('click', function () {
-        const userId = $(this).data('user-id');
-        const notes = $(`.request-note-text[data-user-id="${userId}"]`).val();
-
-        if (confirm('Are you sure you want to reject this user request?')) {
-            rejectUser(userId, notes);
-        }
-    });
-
-    $('.request-more-info-btn').on('click', function () {
-        const userId = $(this).data('user-id');
-        const notes = $(`.request-note-text[data-user-id="${userId}"]`).val();
-
-        if (notes.trim() === '') {
-            alert('Please provide details about what additional information is needed.');
-            return;
-        }
-
-        requestMoreInfo(userId, notes);
-    });
-
-    function approveUser(userId, notes) {
-        $.ajax({
-            url: '/UserManagement/ProcessPendingUser',
-            type: 'POST',
-            data: {
-                userId: userId,
-                action: 'approve',
-                notes: notes
-            },
-            success: function (response) {
-                if (response.success) {
-                    showAlert('success', response.message);
-                    setTimeout(function () {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    showAlert('danger', response.message);
+                if (confirm(`Are you sure you want to change this user's status to ${newStatus}?`)) {
+                    changeUserStatus(userId, newStatus);
                 }
-            },
-            error: function () {
-                showAlert('danger', 'An error occurred while processing your request.');
-            }
-        });
-    }
-
-    function rejectUser(userId, notes) {
-        $.ajax({
-            url: '/UserManagement/ProcessPendingUser',
-            type: 'POST',
-            data: {
-                userId: userId,
-                action: 'reject',
-                notes: notes
-            },
-            success: function (response) {
-                if (response.success) {
-                    showAlert('success', response.message);
-                    setTimeout(function () {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    showAlert('danger', response.message);
-                }
-            },
-            error: function () {
-                showAlert('danger', 'An error occurred while processing your request.');
-            }
-        });
-    }
-
-    function requestMoreInfo(userId, notes) {
-        $.ajax({
-            url: '/UserManagement/ProcessPendingUser',
-            type: 'POST',
-            data: {
-                userId: userId,
-                action: 'request-more-info',
-                notes: notes
-            },
-            success: function (response) {
-                if (response.success) {
-                    showAlert('success', response.message);
-                    setTimeout(function () {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    showAlert('danger', response.message);
-                }
-            },
-            error: function () {
-                showAlert('danger', 'An error occurred while processing your request.');
-            }
+            });
         });
     }
 
     function changeUserStatus(userId, status) {
-        $.ajax({
-            url: '/Admin/UserManagement/ChangeUserStatus',
-            type: 'POST',
-            data: {
-                userId: userId,
-                status: status
+        fetch('/UserManagement/ChangeUserStatus', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getAntiForgeryToken()
             },
-            success: function (response) {
-                if (response.success) {
-                    showAlert('success', response.message);
-                    // Reload page after successful action
-                    setTimeout(function () {
-                        location.reload();
-                    }, 1500);
+            body: JSON.stringify({ userId: userId, status: status })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message || `User status changed to ${status} successfully.`);
+
+                    // Update the status in the table
+                    const statusCell = document.querySelector(`tr[data-user-id="${userId}"] td:nth-child(3) .status`);
+                    if (statusCell) {
+                        statusCell.textContent = status;
+                        statusCell.className = `status ${status.toLowerCase()}`;
+                    } else {
+                        // Reload the page if the cell can't be found
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    }
                 } else {
-                    showAlert('danger', response.message);
+                    showAlert('danger', data.message || 'An error occurred while changing the user status.');
                 }
-            },
-            error: function () {
-                showAlert('danger', 'An error occurred while processing your request.');
-            }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', 'An error occurred while changing the user status.');
+            });
+    }
+
+    // Close Modals
+    const closeModalBtns = document.querySelectorAll('.close-modal, .close-modal-btn');
+
+    if (closeModalBtns) {
+        closeModalBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const modal = this.closest('.modal');
+                if (modal) {
+                    modal.classList.remove('show');
+                }
+            });
         });
     }
 
-    // Legacy pending request actions (kept for backward compatibility)
-    $('#approve-request').on('click', function () {
-        const userId = $(this).data('user-id');
-        const notes = $(`.request-note-text[data-user-id="${userId}"]`).val();
-
-        $.ajax({
-            url: '/Admin/UserManagement/ApproveUser',
-            type: 'POST',
-            data: {
-                userId: userId,
-                notes: notes
-            },
-            success: function (response) {
-                if (response.success) {
-                    showAlert('success', response.message);
-                    // Reload page after successful action
-                    setTimeout(function () {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    showAlert('danger', response.message);
-                }
-            },
-            error: function () {
-                showAlert('danger', 'An error occurred while processing your request.');
+    // Outside click to close modals
+    window.addEventListener('click', function (event) {
+        const modals = document.querySelectorAll('.modal.show');
+        modals.forEach(modal => {
+            if (event.target === modal) {
+                modal.classList.remove('show');
             }
         });
     });
 
-    // Role management
-    $('.view-role-btn').on('click', function () {
-        const roleName = $(this).data('role-name');
-        loadRolePermissions(roleName);
-    });
+    // Toggle Password Visibility
+    const togglePasswordBtns = document.querySelectorAll('.toggle-password');
 
-    function loadRolePermissions(roleName) {
-        $.ajax({
-            url: '/UserManagement/GetRolePermissions', // Update path if needed
-            type: 'GET',
-            data: {
-                roleName: roleName
-            },
-            success: function (response) {
-                if (response.success) {
-                    const template = $('#role-permissions-template').html();
-                    const rendered = Mustache.render(template, response.data);
-                    $('#permissions-content').html(rendered);
+    if (togglePasswordBtns) {
+        togglePasswordBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const passwordInput = this.previousElementSibling;
+                const icon = this.querySelector('i');
+
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
                 } else {
-                    showAlert('danger', response.message);
+                    passwordInput.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
                 }
-            },
-            error: function (xhr, status, error) {
-                console.error('Error loading role permissions:', error);
-                showAlert('danger', 'Error loading role permissions: ' + error);
-            }
+            });
         });
     }
 
-    // Modal functionality
-    $('.close-modal, .close-modal-btn').on('click', function () {
-        $(this).closest('.modal').removeClass('show');
-    });
+    // Close Alert Messages
+    const closeAlertBtns = document.querySelectorAll('.close-alert');
 
-    // Show alert message
+    if (closeAlertBtns) {
+        closeAlertBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const alert = this.closest('.alert');
+                if (alert) {
+                    alert.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // Auto-hide alerts after 5 seconds
+    setTimeout(function () {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            alert.style.display = 'none';
+        });
+    }, 5000);
+
+    // Helper Functions
+    function getAntiForgeryToken() {
+        return document.querySelector('input[name="__RequestVerificationToken"]').value;
+    }
+
     function showAlert(type, message) {
         const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
         const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
@@ -374,90 +273,24 @@ $(function () {
             </div>
         `;
 
-        $('.page-header').after(alertHtml);
+        // Find the page header to insert the alert after it
+        const pageHeader = document.querySelector('.page-header');
+        if (pageHeader) {
+            pageHeader.insertAdjacentHTML('afterend', alertHtml);
 
-        // Auto hide alert after 5 seconds
-        setTimeout(function () {
-            $('.alert').fadeOut(300, function () {
-                $(this).remove();
-            });
-        }, 5000);
-    }
+            // Add event listener to the newly created close button
+            const newAlert = pageHeader.nextElementSibling;
+            const newCloseBtn = newAlert.querySelector('.close-alert');
+            if (newCloseBtn) {
+                newCloseBtn.addEventListener('click', function () {
+                    newAlert.style.display = 'none';
+                });
+            }
 
-    // Close alert when clicking the X button
-    $(document).on('click', '.close-alert', function () {
-        $(this).parent().fadeOut(300, function () {
-            $(this).remove();
-        });
-    });
-
-    // Debug logging for form submission
-    console.log('User management script loaded');
-
-    // Log when the form exists
-    if ($('#user-form').length) {
-        console.log('User form found on page');
-
-        // Attach submission event logging
-        $('#user-form').on('submit', function () {
-            console.log('User form submitted');
-        });
-    } else {
-        console.log('WARNING: User form not found!');
-    }
-
-    // Log ModelState errors if they exist
-    if ($('.validation-summary-errors').length) {
-        console.log('Validation errors exist:');
-        $('.validation-summary-errors ul li').each(function () {
-            console.log(' - ' + $(this).text());
-        });
-    }
-
-    // Check TempData messages
-    if ($('.alert').length) {
-        console.log('Alert messages found:');
-        $('.alert').each(function () {
-            console.log(' - ' + $(this).text().trim());
-        });
-    }
-
-    // Form submission handler
-    $('.user-form, #user-form').on('submit', function (e) {
-        console.log('Form submit event triggered');
-
-        // Disable submit button to prevent double submissions
-        $(this).find('button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
-
-        // Let the form submit normally
-        return true;
-    });
-
-    // Debug logging for form elements
-    if ($('form.user-form').length) {
-        console.log('Form with class user-form found');
-    } else {
-        console.log('WARNING: Form with class user-form not found');
-    }
-
-    if ($('#user-form').length) {
-        console.log('Form with ID user-form found');
-    } else {
-        console.log('WARNING: Form with ID user-form not found');
-    }
-
-    // Check if the form has correct action
-    let formAction = $('form.user-form').attr('action');
-    console.log('Form action attribute:', formAction);
-
-    // Check for required fields
-    let requiredFields = $('form.user-form input[required], form.user-form select[required]');
-    console.log('Required fields count:', requiredFields.length);
-
-    // Check for antiforgery token
-    if ($('form.user-form input[name="__RequestVerificationToken"]').length) {
-        console.log('Antiforgery token found');
-    } else {
-        console.log('WARNING: Antiforgery token missing');
+            // Auto-hide this alert after 5 seconds
+            setTimeout(function () {
+                newAlert.style.display = 'none';
+            }, 5000);
+        }
     }
 });
