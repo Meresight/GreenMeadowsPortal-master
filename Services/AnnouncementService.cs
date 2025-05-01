@@ -429,75 +429,30 @@ namespace GreenMeadowsPortal.Services
                     CreatedDate = announcement.CreatedDate,
                     PublishDate = announcement.PublishDate,
                     ExpirationDate = announcement.ExpirationDate,
-                    AuthorName = $"{announcement.Author.FirstName} {announcement.Author.LastName}",
+                    AuthorName = $"{announcement.Author?.FirstName ?? "Unknown"} {announcement.Author?.LastName ?? ""}",
                     AuthorId = announcement.AuthorId,
                     Priority = announcement.Priority,
                     Status = announcement.Status,
-                    CategoryName = "General", // You can add category handling here
+                    CategoryName = "General",
                     TargetAudience = announcement.TargetAudience,
                     AttachmentUrl = announcement.AttachmentUrl,
                     ImageUrl = announcement.ImageUrl,
                     ReadCount = announcement.ReadReceipts.Count,
-                    ReadReceipts = announcement.ReadReceipts.Select(r => new AnnouncementReadReceiptViewModel
-                    {
-                        UserName = $"{r.User.FirstName} {r.User.LastName}",
-                        UserRole = "User", // This should be retrieved from user roles
-                        ReadDate = r.ReadDate
-                    }).ToList()
+                    // Add null checks for User property
+                    ReadReceipts = announcement.ReadReceipts
+                        .Where(r => r.User != null) // Filter out receipts with null User
+                        .Select(r => new AnnouncementReadReceiptViewModel
+                        {
+                            UserName = $"{r.User.FirstName ?? "Unknown"} {r.User.LastName ?? ""}",
+                            UserRole = "User",
+                            ReadDate = r.ReadDate
+                        }).ToList()
                 };
             }
             catch (Exception ex)
             {
-                // Return mock data for specific ID requests
-                Console.WriteLine($"Database error: {ex.Message}. Returning mock data instead.");
-
-                if (id == 1)
-                {
-                    return new AnnouncementDetailsViewModel
-                    {
-                        Id = 1,
-                        Title = "Welcome to Green Meadows Portal",
-                        Content = "This is a placeholder announcement while the database is being set up. We're working on setting up all features of the portal.",
-                        CreatedDate = DateTime.Now.AddDays(-3),
-                        PublishDate = DateTime.Now.AddDays(-2),
-                        ExpirationDate = DateTime.Now.AddMonths(1),
-                        Priority = AnnouncementPriority.Important,
-                        Status = AnnouncementStatus.Published,
-                        AuthorName = "System Administrator",
-                        AuthorId = "system",
-                        CategoryName = "System",
-                        TargetAudience = "All",
-                        AttachmentUrl = "",
-                        ImageUrl = "",
-                        ReadCount = 0,
-                        HasBeenRead = false,
-                        ReadReceipts = new List<AnnouncementReadReceiptViewModel>()
-                    };
-                }
-                else if (id == 2)
-                {
-                    return new AnnouncementDetailsViewModel
-                    {
-                        Id = 2,
-                        Title = "Database Setup in Progress",
-                        Content = "The database tables are currently being configured. Normal announcement functionality will be available soon. Please contact the system administrator if you have any questions.",
-                        CreatedDate = DateTime.Now.AddDays(-1),
-                        PublishDate = DateTime.Now,
-                        ExpirationDate = DateTime.Now.AddMonths(1),
-                        Priority = AnnouncementPriority.General,
-                        Status = AnnouncementStatus.Published,
-                        AuthorName = "System Administrator",
-                        AuthorId = "system",
-                        CategoryName = "System",
-                        TargetAudience = "All",
-                        AttachmentUrl = "",
-                        ImageUrl = "",
-                        ReadCount = 0,
-                        HasBeenRead = false,
-                        ReadReceipts = new List<AnnouncementReadReceiptViewModel>()
-                    };
-                }
-
+                // Log error and return mock data
+                Console.WriteLine($"Error in GetAnnouncementByIdAsync: {ex.Message}");
                 return null;
             }
         }
@@ -526,7 +481,7 @@ namespace GreenMeadowsPortal.Services
                     CreatedDate = announcement.CreatedDate,
                     PublishDate = announcement.PublishDate,
                     ExpirationDate = announcement.ExpirationDate,
-                    AuthorName = $"{announcement.Author.FirstName} {announcement.Author.LastName}",
+                    AuthorName = $"{announcement.Author?.FirstName ?? "Unknown"} {announcement.Author?.LastName ?? ""}",
                     AuthorId = announcement.AuthorId,
                     Priority = announcement.Priority,
                     Status = announcement.Status,
@@ -535,23 +490,27 @@ namespace GreenMeadowsPortal.Services
                     AttachmentUrl = announcement.AttachmentUrl,
                     ImageUrl = announcement.ImageUrl,
                     ReadCount = announcement.ReadReceipts.Count,
-                    ReadReceipts = announcement.ReadReceipts.Select(r => new AnnouncementReadReceiptViewModel
-                    {
-                        UserName = $"{r.User.FirstName} {r.User.LastName}",
-                        UserRole = "User", // This should be retrieved from user roles
-                        ReadDate = r.ReadDate
-                    }).OrderByDescending(r => r.ReadDate).ToList()
+                    // Add null checks for User property
+                    ReadReceipts = announcement.ReadReceipts
+                        .Where(r => r.User != null) // Filter out receipts with null User
+                        .Select(r => new AnnouncementReadReceiptViewModel
+                        {
+                            UserName = $"{r.User.FirstName ?? "Unknown"} {r.User.LastName ?? ""}",
+                            UserRole = "User", // This should be retrieved from user roles
+                            ReadDate = r.ReadDate
+                        })
+                        .OrderByDescending(r => r.ReadDate)
+                        .ToList()
                 };
             }
             catch (Exception ex)
             {
-                // Return mock data
-                Console.WriteLine($"Database error: {ex.Message}. Returning mock data instead.");
-
-                // Return the same mock data as in GetAnnouncementByIdAsync
-                return GetAnnouncementByIdAsync(id).Result;
+                // Log error and return null
+                Console.WriteLine($"Error in GetAnnouncementWithReadReceiptsAsync: {ex.Message}");
+                return null;
             }
         }
+
 
         // Create a new announcement
         public async Task<int> CreateAnnouncementAsync(AdminAnnouncement announcement)

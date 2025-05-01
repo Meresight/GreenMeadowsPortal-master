@@ -18,7 +18,230 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="~/css/read-receipts.css">
+    <link rel="stylesheet" href="~/css/admin.css">
+    <style>
+        /* Consistent styling with admin dashboard */
+        .receipts-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .card-header {
+            padding: 15px 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .search-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-box {
+            position: relative;
+            flex-grow: 1;
+        }
+
+            .search-box input {
+                width: 100%;
+                padding: 10px 15px 10px 40px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+            }
+
+            .search-box i {
+                position: absolute;
+                left: 15px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #6c757d;
+            }
+
+        .filter-group, .sort-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            .filter-group label, .sort-group label {
+                font-weight: 500;
+                color: #495057;
+            }
+
+            .filter-group select, .sort-group select {
+                padding: 8px 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background-color: #fff;
+            }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .receipts-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .receipts-table th {
+                background-color: #f8f9fa;
+                padding: 12px 15px;
+                text-align: left;
+                font-weight: 600;
+                color: #495057;
+                border-bottom: 2px solid #e9ecef;
+            }
+
+            .receipts-table td {
+                padding: 12px 15px;
+                border-bottom: 1px solid #e9ecef;
+                color: #495057;
+            }
+
+            .receipts-table tr:last-child td {
+                border-bottom: none;
+            }
+
+            .receipts-table tr:hover {
+                background-color: #f8f9fa;
+            }
+
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar-sm {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+
+            .avatar-sm img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+            .role-badge.admin {
+                background-color: #e3f2fd;
+                color: #1976d2;
+            }
+
+            .role-badge.staff {
+                background-color: #e8f5e9;
+                color: #2e7d32;
+            }
+
+            .role-badge.homeowner {
+                background-color: #fff8e1;
+                color: #f57f17;
+            }
+
+        .receipts-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-top: 1px solid #e9ecef;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            .summary-item .label {
+                font-weight: 600;
+                color: #495057;
+            }
+
+            .summary-item .value {
+                font-weight: 500;
+                color: #1976d2;
+            }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary {
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+            .btn-secondary:hover {
+                background-color: #e0e0e0;
+            }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            color: #adb5bd;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .empty-state p {
+            color: #6c757d;
+            max-width: 400px;
+        }
+
+        </style>
 </head>
 <body>
     <div class="wrapper">
@@ -109,17 +332,17 @@
                 </div>
 
                 <!-- Announcement Summary -->
-                <div class="card announcement-summary">
+                <div class="card receipts-card" style="margin-bottom: 20px;">
                     <div class="card-header">
-                        <h2>@Model.Title</h2>
-                        <div class="announcement-meta">
+                        <h2 style="margin: 0;">@Model.Title</h2>
+                        <div class="announcement-meta" style="margin-top: 5px; color: #6c757d; font-size: 14px;">
                             <span class="meta-item">
                                 <i class="fas fa-user"></i> Posted by: @Model.AuthorName
                             </span>
-                            <span class="meta-item">
+                            <span class="meta-item" style="margin-left: 15px;">
                                 <i class="fas fa-calendar"></i> Published: @($"{Model.PublishDate:MMM dd, yyyy}")
                             </span>
-                            <span class="meta-item">
+                            <span class="meta-item" style="margin-left: 15px;">
                                 <i class="fas fa-eye"></i> Read by: @Model.ReadCount users
                             </span>
                         </div>
@@ -127,10 +350,10 @@
                 </div>
 
                 <!-- Read Receipts Table -->
-                <div class="card receipts-card">
+                <div class="receipts-card">
                     <div class="card-header">
                         <div class="header-row">
-                            <h2>User Read Receipts</h2>
+                            <h2 style="margin: 0;">User Read Receipts</h2>
                             <div class="card-actions">
                                 <button class="btn btn-secondary" id="export-btn">
                                     <i class="fas fa-download"></i> Export
@@ -295,6 +518,9 @@
     <!-- JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Fetch current user information for the UI
+            fetchCurrentUser();
+
             // Search functionality
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
@@ -343,6 +569,33 @@
                 sidebarToggle.addEventListener('click', function() {
                     sidebar.classList.toggle('active');
                 });
+            }
+
+            // Fetch current user data
+            async function fetchCurrentUser() {
+                try {
+                    const response = await fetch('/api/User/GetCurrentUser');
+                    if (response.ok) {
+                        const data = await response.json();
+
+                        // Update user name and avatar
+                        const userNameElem = document.getElementById('user-name');
+                        const userRoleElem = document.getElementById('user-role');
+                        const userAvatarElem = document.getElementById('user-avatar');
+                        const navUserName = document.querySelector('.user-dropdown span');
+                        const navUserAvatar = document.querySelector('.user-dropdown img');
+                        const notificationCount = document.querySelector('.notification-count');
+
+                        if (userNameElem) userNameElem.textContent = data.firstName;
+                        if (userRoleElem) userRoleElem.textContent = data.role;
+                        if (userAvatarElem) userAvatarElem.src = data.profileImageUrl || '/images/default-avatar.png';
+                        if (navUserName) navUserName.textContent = data.firstName;
+                        if (navUserAvatar) navUserAvatar.src = data.profileImageUrl || '/images/default-avatar.png';
+                        if (notificationCount) notificationCount.textContent = data.notificationCount;
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch user data:', error);
+                }
             }
 
             // Filter table function
@@ -420,13 +673,29 @@
                 const encodedUri = encodeURI(csvContent);
                 const link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
-                link.setAttribute("download", "read_receipts_" + @Model.Id + ".csv");
-                document.body.appendChild(link);
+        link.setAttribute("download", "read_receipts_@(Model.Id).csv");
+                        document.body.appendChild(link);
 
                 // Trigger download
                 link.click();
                 document.body.removeChild(link);
             }
+
+            // Start notification polling
+            setInterval(async function() {
+                try {
+                    const response = await fetch('/api/announcements/unread-count');
+                    if (response.ok) {
+                        const data = await response.json();
+                        const notificationCount = document.querySelector('.notification-count');
+                        if (notificationCount) {
+                            notificationCount.textContent = data.count;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error updating notification count:', error);
+                }
+            }, 30000); // Update every 30 seconds
         });
     </script>
 </body>

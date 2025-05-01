@@ -362,4 +362,4 @@ async function updateNotificationCount() {
 }
 
 // Initialize on document load
-document.addEventListener('DOMContentLoaded', initAnnouncementPage);
+document.addEventListener('DOMContentLoaded', initAnnouncementPage);                                                                                                                                                        
