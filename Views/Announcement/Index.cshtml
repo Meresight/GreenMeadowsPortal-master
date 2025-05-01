@@ -38,6 +38,10 @@
             <div class="user-profile">
                 <div class="user-avatar">
                     <img src="@Model.ProfileImageUrl" alt="User Avatar">
+                    @if (Model.CurrentUserRole == "Staff")
+                    {
+                        <div class="forum-logo">F</div>
+                    }
                 </div>
                 <div class="user-info">
                     <h4>@Model.FirstName</h4>
@@ -63,7 +67,13 @@
                 <li class="active">
                     <a asp-controller="Announcement" asp-action="Index"><i class="fas fa-bullhorn"></i> Announcements</a>
                 </li>
-                <li><a asp-controller="Dashboard" asp-action="Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a></li>
+
+                @* Only show Billing for Admin and Homeowner roles, not for Staff *@
+                @if (Model.CurrentUserRole != "Staff")
+                {
+                    <li><a asp-controller="Dashboard" asp-action="Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a></li>
+                }
+
                 <li><a href="/Facilities"><i class="fas fa-swimming-pool"></i> Facilities</a></li>
                 <li><a href="/ServiceRequests"><i class="fas fa-tools"></i> Service Requests</a></li>
                 <li><a href="/Documents"><i class="fas fa-file-alt"></i> Documents</a></li>
@@ -123,7 +133,7 @@
                 <div class="page-header">
                     <h1>Announcements</h1>
                     <div class="action-buttons">
-                        @if (Model.CurrentUserRole == "Admin")
+                        @if (Model.CurrentUserRole == "Admin" || Model.CurrentUserRole == "Staff")
                         {
                             <a asp-controller="Announcement" asp-action="Create" class="btn primary-btn">
                                 <i class="fas fa-plus"></i> Create Announcement
@@ -190,7 +200,7 @@
                                         case AnnouncementPriority.Important:
                                             <span class="tag important">Important</span>
                                             break;
-                                        default:
+                                        case AnnouncementPriority.General:
                                             <span class="tag general">General</span>
                                             break;
                                     }
@@ -198,6 +208,18 @@
                                     @if (announcement.Status == AnnouncementStatus.Draft)
                                     {
                                         <span class="tag draft">Draft</span>
+
+                                        @* Add Publish button for drafts *@
+                                        @if (Model.CurrentUserRole == "Admin" ||
+                                       (Model.CurrentUserRole == "Staff" && announcement.AuthorId == Model.CurrentUserId))
+                                        {
+                                            <form asp-action="Publish" asp-route-id="@announcement.Id" method="post" style="display: inline; margin-left: 8px;">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="draft-publish-btn">
+                                                    <i class="fas fa-paper-plane"></i> Publish
+                                                </button>
+                                            </form>
+                                        }
                                     }
                                     else if (announcement.PublishDate > DateTime.Now)
                                     {
@@ -275,7 +297,6 @@
             </footer>
         </div>
     </div>
-    <script src="~/js/announcements.js"></script>
     <script>
         function updateFilter(selectElement) {
             let currentUrl = new URL(window.location.href);

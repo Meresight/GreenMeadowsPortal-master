@@ -66,21 +66,22 @@ namespace GreenMeadowsPortal.Controllers
             }
             else if (isStaff)
             {
-                // Staff see published and their own drafts
+                // Staff see published announcements targeted at staff or all, plus their own drafts
                 viewModel.Announcements = await _announcementService.GetAnnouncementsForStaffAsync(
                     user.Id, filter, search, page, 10);
             }
             else
             {
-                // Homeowners see only published announcements
+                // Homeowners see only published announcements targeted at homeowners or all
                 viewModel.Announcements = await _announcementService.GetAnnouncementsForHomeownersAsync(
                     filter, search, page, 10);
             }
 
             viewModel.TotalCount = await _announcementService.GetTotalCountAsync(filter, search);
-
             return View(viewModel);
         }
+
+
 
         // GET: /Announcement/Details/5
         public async Task<IActionResult> Details(int id)
@@ -409,16 +410,32 @@ namespace GreenMeadowsPortal.Controllers
         // POST: /Announcement/Publish/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Publish(int id)
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction("Login", "Account");
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var isAdmin = roles.Contains("Admin");
+            var isStaff = roles.Contains("Staff");
+
             var announcement = await _announcementService.GetAnnouncementByIdAsync(id);
             if (announcement == null)
             {
                 return NotFound();
             }
 
+            // Check if user has permission to publish
+            if (!isAdmin && !(isStaff && announcement.AuthorId == user.Id))
+            {
+                return Forbid();
+            }
+
+            // Update announcement status to Published
             announcement.Status = AnnouncementStatus.Published;
+
+            // If publish date is in the future, set it to now
             if (announcement.PublishDate > DateTime.Now)
             {
                 announcement.PublishDate = DateTime.Now;
@@ -441,21 +458,9 @@ namespace GreenMeadowsPortal.Controllers
             };
 
             await _announcementService.UpdateAnnouncementAsync(adminAnnouncement);
-            await SendAnnouncementNotificationsAsync(new AdminAnnouncement
-            {
-                Id = announcement.Id,
-                Title = announcement.Title,
-                Content = announcement.Content,
-                CreatedDate = announcement.CreatedDate,
-                PublishDate = announcement.PublishDate,
-                ExpirationDate = announcement.ExpirationDate,
-                AuthorId = announcement.AuthorId,
-                Priority = announcement.Priority,
-                Status = announcement.Status,
-                TargetAudience = announcement.TargetAudience,
-                AttachmentUrl = announcement.AttachmentUrl,
-                ImageUrl = announcement.ImageUrl
-            });
+
+            // Send notifications
+            await SendAnnouncementNotificationsAsync(adminAnnouncement);
 
             TempData["SuccessMessage"] = "Announcement published successfully.";
             return RedirectToAction(nameof(Index));

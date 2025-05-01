@@ -157,11 +157,11 @@ namespace GreenMeadowsPortal.Services
 
         // Get announcements for staff (published or their own drafts)
         public async Task<List<AnnouncementDetailsViewModel>> GetAnnouncementsForStaffAsync(
-            string staffId,
-            string filter = "all",
-            string search = "",
-            int page = 1,
-            int pageSize = 10)
+    string staffId,
+    string filter = "all",
+    string search = "",
+    int page = 1,
+    int pageSize = 10)
         {
             try
             {
@@ -169,10 +169,13 @@ namespace GreenMeadowsPortal.Services
                     .Include(a => a.Author)
                     .Include(a => a.ReadReceipts)
                     .Where(a =>
-                        // Published announcements
-                        (a.Status == AnnouncementStatus.Published && a.PublishDate <= DateTime.Now) ||
+                        // Published announcements for all or staff
+                        ((a.Status == AnnouncementStatus.Published &&
+                          a.PublishDate <= DateTime.Now &&
+                          (a.TargetAudience == "All" || a.TargetAudience == "Staff" || a.TargetAudience.Contains("Staff")))
+                         ||
                         // Or their own drafts
-                        (a.Status == AnnouncementStatus.Draft && a.AuthorId == staffId))
+                        (a.Status == AnnouncementStatus.Draft && a.AuthorId == staffId)))
                     .AsQueryable();
 
                 // Apply filter
@@ -231,42 +234,41 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Return mock data for now until database is properly set up
+                // Log error and return filtered mock data
                 Console.WriteLine($"Database error: {ex.Message}. Returning mock data instead.");
 
-                // Return the same mock data as in GetAllAnnouncementsAsync
                 return new List<AnnouncementDetailsViewModel>
-                {
-                    new AnnouncementDetailsViewModel
-                    {
-                        Id = 1,
-                        Title = "Welcome to Green Meadows Portal",
-                        Content = "This is a placeholder announcement while the database is being set up.",
-                        CreatedDate = DateTime.Now.AddDays(-3),
-                        PublishDate = DateTime.Now.AddDays(-2),
-                        ExpirationDate = DateTime.Now.AddMonths(1),
-                        Priority = AnnouncementPriority.Important,
-                        Status = AnnouncementStatus.Published,
-                        AuthorName = "System Administrator",
-                        AuthorId = "system",
-                        CategoryName = "System",
-                        TargetAudience = "All",
-                        AttachmentUrl = "",
-                        ImageUrl = "",
-                        ReadCount = 0,
-                        HasBeenRead = false,
-                        ReadReceipts = new List<AnnouncementReadReceiptViewModel>()
-                    }
-                };
+        {
+            new AnnouncementDetailsViewModel
+            {
+                Id = 1,
+                Title = "Welcome to Green Meadows Staff Portal",
+                Content = "This is a placeholder announcement for staff members.",
+                CreatedDate = DateTime.Now.AddDays(-3),
+                PublishDate = DateTime.Now.AddDays(-2),
+                ExpirationDate = DateTime.Now.AddMonths(1),
+                Priority = AnnouncementPriority.Important,
+                Status = AnnouncementStatus.Published,
+                AuthorName = "System Administrator",
+                AuthorId = "system",
+                CategoryName = "System",
+                TargetAudience = "Staff",
+                AttachmentUrl = "",
+                ImageUrl = "",
+                ReadCount = 0,
+                HasBeenRead = false,
+                ReadReceipts = new List<AnnouncementReadReceiptViewModel>()
+            }
+        };
             }
         }
 
         // Get announcements for homeowners (published only)
         public async Task<List<AnnouncementDetailsViewModel>> GetAnnouncementsForHomeownersAsync(
-            string filter = "all",
-            string search = "",
-            int page = 1,
-            int pageSize = 10)
+     string filter = "all",
+     string search = "",
+     int page = 1,
+     int pageSize = 10)
         {
             try
             {
@@ -276,7 +278,8 @@ namespace GreenMeadowsPortal.Services
                     .Where(a =>
                         a.Status == AnnouncementStatus.Published &&
                         a.PublishDate <= DateTime.Now &&
-                        (a.ExpirationDate == null || a.ExpirationDate > DateTime.Now))
+                        (a.ExpirationDate == null || a.ExpirationDate > DateTime.Now) &&
+                        (a.TargetAudience == "All" || a.TargetAudience == "Homeowners")) // Add this filter
                     .AsQueryable();
 
                 // Apply filter
@@ -333,36 +336,35 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Return mock data for now until database is properly set up
+                // Log error and return mock data in case of an error
                 Console.WriteLine($"Database error: {ex.Message}. Returning mock data instead.");
 
-                // Return the same mock data as in GetAllAnnouncementsAsync
+                // Return mock data filtered to show only items intended for all users or homeowners
                 return new List<AnnouncementDetailsViewModel>
-                {
-                    new AnnouncementDetailsViewModel
-                    {
-                        Id = 1,
-                        Title = "Welcome to Green Meadows Portal",
-                        Content = "This is a placeholder announcement while the database is being set up.",
-                        CreatedDate = DateTime.Now.AddDays(-3),
-                        PublishDate = DateTime.Now.AddDays(-2),
-                        ExpirationDate = DateTime.Now.AddMonths(1),
-                        Priority = AnnouncementPriority.Important,
-                        Status = AnnouncementStatus.Published,
-                        AuthorName = "System Administrator",
-                        AuthorId = "system",
-                        CategoryName = "System",
-                        TargetAudience = "All",
-                        AttachmentUrl = "",
-                        ImageUrl = "",
-                        ReadCount = 0,
-                        HasBeenRead = false,
-                        ReadReceipts = new List<AnnouncementReadReceiptViewModel>()
-                    }
-                };
+        {
+            new AnnouncementDetailsViewModel
+            {
+                Id = 1,
+                Title = "Welcome to Green Meadows Portal",
+                Content = "This is a placeholder announcement for homeowners.",
+                CreatedDate = DateTime.Now.AddDays(-3),
+                PublishDate = DateTime.Now.AddDays(-2),
+                ExpirationDate = DateTime.Now.AddMonths(1),
+                Priority = AnnouncementPriority.Important,
+                Status = AnnouncementStatus.Published,
+                AuthorName = "System Administrator",
+                AuthorId = "system",
+                CategoryName = "System",
+                TargetAudience = "All",
+                AttachmentUrl = "",
+                ImageUrl = "",
+                ReadCount = 0,
+                HasBeenRead = false,
+                ReadReceipts = new List<AnnouncementReadReceiptViewModel>()
+            }
+        };
             }
         }
-
         // Get total count for pagination
         public async Task<int> GetTotalCountAsync(string filter = "all", string search = "")
         {

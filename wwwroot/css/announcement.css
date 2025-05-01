@@ -580,6 +580,10 @@ img {
     font-size: 0.75rem;
     font-weight: 500;
 }
+    .tag.important {
+        background-color: rgba(255, 143, 0, 0.1);
+        color: var(--accent-color);
+    }
 
     .tag.urgent {
         background-color: var(--danger-color);
