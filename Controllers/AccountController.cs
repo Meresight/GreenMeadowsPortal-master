@@ -10,12 +10,14 @@ namespace GreenMeadowsPortal.Controllers
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         RoleManager<IdentityRole> roleManager,
-        IWebHostEnvironment hostEnvironment) : Controller
+        IWebHostEnvironment hostEnvironment,
+        ILogger<AccountController> logger) : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager = userManager;
         private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
         private readonly RoleManager<IdentityRole> _roleManager = roleManager;
         private readonly IWebHostEnvironment _hostEnvironment = hostEnvironment;
+        private readonly ILogger<AccountController> _logger = logger;
 
         private void DisableBackHistory()
         {
@@ -44,6 +46,13 @@ namespace GreenMeadowsPortal.Controllers
                     var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, false);
                     if (result.Succeeded)
                     {
+                        // Update last login date
+                        user.LastLoginDate = DateTime.Now;
+                        await _userManager.UpdateAsync(user);
+
+                        // Log successful login for debugging
+                        _logger.LogInformation($"User {user.Email} logged in at {DateTime.Now}");
+
                         return RedirectToAction("RedirectUserBasedOnRole", new { userId = user.Id });
                     }
                 }

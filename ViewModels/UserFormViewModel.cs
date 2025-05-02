@@ -97,7 +97,7 @@ namespace GreenMeadowsPortal.ViewModels
 
         [Display(Name = "Number of Residents")]
         [Range(1, 20, ErrorMessage = "Please enter a valid number of residents")]
-        public int? ResidentCount { get; set; }
+        public int? ResidentCount { get; set; } = 1;
 
         // Additional Settings  
         [Display(Name = "Receive email notifications")]

@@ -107,7 +107,8 @@ namespace GreenMeadowsPortal.Controllers
                 viewModel.PageStartRecord = viewModel.TotalRecords == 0 ? 0 : ((page - 1) * pageSize) + 1;
                 viewModel.PageEndRecord = Math.Min(page * pageSize, viewModel.TotalRecords);
 
-                return View(viewModel);
+                return View("~/Views/UserManagement/AddUser.cshtml", viewModel);
+
             }
             catch (Exception ex)
             {
@@ -193,12 +194,15 @@ namespace GreenMeadowsPortal.Controllers
         {
             try
             {
+                _logger.LogInformation($"Received form data: ID={model.Id}, Email={model.Email}, Role={model.Role}");
+
                 // Clear validations for optional fields
                 ModelState.Remove("Id");
                 ModelState.Remove("ForcePasswordChange");
                 ModelState.Remove("SendCredentials");
                 ModelState.Remove("ProfileImage");
                 ModelState.Remove("PropertyDocuments");
+                ModelState.Remove("ResidentCount"); // Remove validation for this field
 
                 _logger.LogInformation($"Received form with Role: {model.Role}");
 
@@ -620,6 +624,13 @@ namespace GreenMeadowsPortal.Controllers
         {
             try
             {
+                // Ensure userId is not null/empty
+                if (string.IsNullOrEmpty(userId))
+                {
+                    TempData["ErrorMessage"] = "User ID is required.";
+                    return RedirectToAction("Index");
+                }
+
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
@@ -627,7 +638,7 @@ namespace GreenMeadowsPortal.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // Reset password
+                // Generate token and reset password
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
                 var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
 
@@ -640,50 +651,31 @@ namespace GreenMeadowsPortal.Controllers
                         await _userManager.UpdateAsync(user);
                     }
 
-                    // Send email with new password if requested
-                    if (sendEmail)
-                    {
-                        await SendPasswordResetEmail(user, newPassword);
-                    }
-
-                    // Log password reset
-                    // Ensure `adminUser` is not null before accessing its properties
-                    var adminUser = await _userManager.GetUserAsync(User);
-                    if (adminUser == null)
-                    {
-                        TempData["ErrorMessage"] = "Current user could not be identified.";
-                        return RedirectToAction("Index");
-                    }
-
-                    // Log user deletion
-                    await _userService.LogActivityAsync(
-                        adminUser.Id,
-                        "user-deleted",
-                        $"Deleted user: {user.Email}",
-                        HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
-                    );
-
+                    // Add logging message to help debugging
+                    _logger.LogInformation($"Password reset successful for user {user.Email}");
 
                     TempData["SuccessMessage"] = "Password reset successfully.";
+                    return RedirectToAction("Index");
                 }
                 else
                 {
+                    // Log specific errors
                     foreach (var error in result.Errors)
                     {
-                        ModelState.AddModelError(string.Empty, error.Description);
+                        _logger.LogError($"Password reset error: {error.Description}");
                     }
-                    TempData["ErrorMessage"] = "Failed to reset password.";
+
+                    TempData["ErrorMessage"] = $"Failed to reset password: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                    return RedirectToAction("Index");
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error resetting password");
                 TempData["ErrorMessage"] = "An error occurred: " + ex.Message;
+                return RedirectToAction("Index");
             }
-
-            return RedirectToAction("Index");
         }
-
         // POST: /UserManagement/DeleteUser
         [HttpPost]
         public async Task<IActionResult> DeleteUser(string id)
