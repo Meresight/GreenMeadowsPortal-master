@@ -41,68 +41,63 @@ namespace GreenMeadowsPortal.Services
         {
             try
             {
-                _logger.LogInformation($"GetAllUsersAsync called with page={page}, pageSize={pageSize}");
+                // Log at the start of the method
+                _logger.LogInformation("Starting GetAllUsersAsync with page={Page}, pageSize={PageSize}", page, pageSize);
 
-                // First, log the raw count
-                var totalCount = await _userManager.Users.CountAsync();
-                _logger.LogInformation($"Total raw user count in database: {totalCount}");
+                // Count total users first to verify access
+                var totalUsers = await _userManager.Users.CountAsync();
+                _logger.LogInformation("Total users in database: {TotalUsers}", totalUsers);
 
-                // Get the users with pagination
-                var users = await _userManager.Users
+                // Get all users without paging first to simplify debugging
+                var allUsers = await _userManager.Users.ToListAsync();
+                _logger.LogInformation("Successfully retrieved {Count} users from database", allUsers.Count);
+
+                // Now apply paging
+                var users = allUsers
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .ToListAsync();
-
-                _logger.LogInformation($"Retrieved {users.Count} users from database");
-
-                if (users.Count == 0)
-                {
-                    _logger.LogWarning("No users found in the database query result");
-                    return new List<UserViewModel>();
-                }
+                    .ToList();
 
                 var userViewModels = new List<UserViewModel>();
 
                 foreach (var user in users)
                 {
-                    try
-                    {
-                        var roles = await _userManager.GetRolesAsync(user);
-                        _logger.LogInformation($"Processing user: {user.Id}, Email: {user.Email}");
+                    // Log for each user being processed
+                    _logger.LogInformation("Processing user: {Email}", user.Email);
 
-                        userViewModels.Add(new UserViewModel
-                        {
-                            Id = user.Id,
-                            FirstName = user.FirstName ?? "",
-                            LastName = user.LastName ?? "",
-                            Email = user.Email ?? "",
-                            PhoneNumber = user.PhoneNumber ?? "",
-                            Address = user.Address ?? "",
-                            Role = roles.FirstOrDefault() ?? "User",
-                            Status = user.Status ?? "Active",
-                            MemberSince = user.MemberSince.ToString("MMM dd, yyyy"),
-                            LastLogin = user.LastLoginDate.HasValue ? user.LastLoginDate.Value.ToString("MMM dd, yyyy HH:mm") : "Never",
-                            ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                            PropertyType = user.PropertyType ?? "N/A",
-                            OwnershipStatus = user.OwnershipStatus ?? "N/A"
-                        });
-                    }
-                    catch (Exception ex)
+                    var roles = await _userManager.GetRolesAsync(user);
+                    _logger.LogInformation("User {Email} has roles: {Roles}", user.Email, string.Join(", ", roles));
+
+                    userViewModels.Add(new UserViewModel
                     {
-                        _logger.LogError(ex, $"Error mapping user {user.Id} to view model");
-                    }
+                        Id = user.Id,
+                        FirstName = user.FirstName ?? "",
+                        LastName = user.LastName ?? "",
+                        Email = user.Email ?? "",
+                        PhoneNumber = user.PhoneNumber ?? "",
+                        Address = user.Address ?? "",
+                        Role = roles.FirstOrDefault() ?? "User",
+                        Status = user.Status ?? "Active",
+                        MemberSince = user.MemberSince.ToString("MMM dd, yyyy"),
+                        LastLogin = user.LastLoginDate.HasValue ? user.LastLoginDate.Value.ToString("MMM dd, yyyy HH:mm") : "Never",
+                        ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                        PropertyType = user.PropertyType ?? "N/A", // Added this line
+                        OwnershipStatus = user.OwnershipStatus ?? "N/A" // Added this line
+                    });
+
                 }
 
-                _logger.LogInformation($"Returning {userViewModels.Count} view models");
+                _logger.LogInformation("Returning {Count} user view models", userViewModels.Count);
                 return userViewModels;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in GetAllUsersAsync");
+                _logger.LogError(ex, "Error in GetAllUsersAsync: {Message}", ex.Message);
                 // Return empty list instead of throwing to prevent page crash
                 return new List<UserViewModel>();
             }
         }
+
         // Add this to UserService.cs
         public async Task LogActivityAsync(string userId, string activityType, string details, string ipAddress)
         {

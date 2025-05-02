@@ -66,23 +66,43 @@ namespace GreenMeadowsPortal.Controllers
                     PageStartRecord = 0,
                     PageEndRecord = 0,
                     TotalRecords = 0,
-                    // Convert role names to RoleViewModel objects
-                    Roles = (await _roleManager.Roles.Select(r => r.Name).ToListAsync())
-    .Select(roleName => new RoleViewModel
-    {
-        Name = roleName!,
-        Permissions = new List<PermissionViewModel>() // Initialize the required Permissions property
-    }).ToList(),
-
+                    Roles = await GetAllRolesAsync(),
                     PendingUsers = new List<PendingUserViewModel>(),
                     ActivityLogs = new List<ActivityLogViewModel>()
                 };
 
-                // Load Users
-                viewModel.Users = await _userService.GetAllUsersAsync(page, pageSize);
+                // Directly query users
+                var users = await _userManager.Users
+                    .OrderBy(u => u.Email)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                foreach (var u in users)
+                {
+                    var userRoles = await _userManager.GetRolesAsync(u);
+
+                    viewModel.Users.Add(new UserViewModel
+                    {
+                        Id = u.Id,
+                        FirstName = u.FirstName ?? "",
+                        LastName = u.LastName ?? "",
+                        Email = u.Email ?? "",
+                        PhoneNumber = u.PhoneNumber ?? "",
+                        Address = u.Address ?? "",
+                        Role = userRoles.FirstOrDefault() ?? "User",
+                        Status = u.Status ?? "Active",
+                        MemberSince = u.MemberSince.ToString("MMM dd, yyyy"),
+                        LastLogin = u.LastLoginDate.HasValue ? u.LastLoginDate.Value.ToString("MMM dd, yyyy HH:mm") : "Never",
+                        ProfileImageUrl = u.ProfileImageUrl ?? "/images/default-avatar.png",
+                        PropertyType = u.PropertyType ?? "Unknown", // Added to fix CS9035
+                        OwnershipStatus = u.OwnershipStatus ?? "Unknown" // Added to fix CS9035
+                    });
+
+                }
 
                 // Calculate pagination
-                viewModel.TotalRecords = await _userService.GetTotalUserCountAsync();
+                viewModel.TotalRecords = await _userManager.Users.CountAsync();
                 viewModel.TotalPages = (int)Math.Ceiling(viewModel.TotalRecords / (double)pageSize);
                 viewModel.PageStartRecord = viewModel.TotalRecords == 0 ? 0 : ((page - 1) * pageSize) + 1;
                 viewModel.PageEndRecord = Math.Min(page * pageSize, viewModel.TotalRecords);
@@ -91,10 +111,58 @@ namespace GreenMeadowsPortal.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading User Management page");
-                TempData["ErrorMessage"] = "An error occurred while loading the page. Please try again.";
-                return RedirectToAction("AdminDashboard", "Dashboard");
+                _logger.LogError(ex, "An error occurred while processing the request.");
+                TempData["ErrorMessage"] = "An unexpected error occurred. Please try again later.";
             }
+
+            {
+                // Log the exception
+                return View(new UserManagementViewModel
+                {
+                    FirstName = "Error",
+                    Role = "Admin",
+                    Users = new List<UserViewModel>(),
+                    PendingUsers = new List<PendingUserViewModel>(), // Fix for CS9035
+                    Roles = new List<RoleViewModel>(), // Fix for CS9035
+                    ActivityLogs = new List<ActivityLogViewModel>() // Fix for CS9035
+                });
+
+            }
+        }
+
+        private async Task<List<RoleViewModel>> GetAllRolesAsync()
+        {
+            var roles = _roleManager.Roles.ToList();
+            var roleViewModels = new List<RoleViewModel>();
+
+            foreach (var role in roles)
+            {
+                if (role.Name != null) // Ensure role.Name is not null
+                {
+                    var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name);
+
+                    // Create a simplified permissions list
+                    var permissions = new List<PermissionViewModel>
+            {
+                new PermissionViewModel
+                {
+                    Id = "1",
+                    Name = "View",
+                    Category = "Basic",
+                    IsGranted = true
+                }
+            };
+
+                    roleViewModels.Add(new RoleViewModel
+                    {
+                        Name = role.Name,
+                        UserCount = usersInRole.Count,
+                        Permissions = permissions
+                    });
+                }
+            }
+
+            return roleViewModels;
         }
 
         // GET: /UserManagement/AddUser
@@ -411,7 +479,88 @@ namespace GreenMeadowsPortal.Controllers
                 return View("AddUser", model);
             }
         }
+        // The issue arises because there are two methods named `Index` with the same parameter types in the `UserManagementController` class.  
+        // To resolve this, we need to rename one of the methods to avoid the conflict.  
 
+        // Renaming the second `Index` method to `IndexWithDirectQuery` for clarity.  
+
+        [HttpGet]
+        public async Task<IActionResult> IndexWithDirectQuery(int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null) return RedirectToAction("Login", "Account");
+
+                var roles = await _userManager.GetRolesAsync(user);
+
+                // Prepare the view model  
+                var viewModel = new UserManagementViewModel
+                {
+                    FirstName = user.FirstName ?? "Admin",
+                    Role = roles.FirstOrDefault() ?? "Admin",
+                    NotificationCount = 0, // Placeholder  
+                    CurrentUserProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                    Users = new List<UserViewModel>(),
+                    CurrentPage = page,
+                    TotalPages = 1,
+                    PageStartRecord = 0,
+                    PageEndRecord = 0,
+                    TotalRecords = 0,
+                    Roles = new List<RoleViewModel>(),
+                    PendingUsers = new List<PendingUserViewModel>(),
+                    ActivityLogs = new List<ActivityLogViewModel>()
+                };
+
+                // Directly query users here instead of using the service  
+                var users = await _userManager.Users
+                    .OrderBy(u => u.Email)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                foreach (var u in users)
+                {
+                    var userRoles = await _userManager.GetRolesAsync(u);
+
+                    // Fix for CS9035: Required member 'UserViewModel.PropertyType' must be set in the object initializer or attribute constructor.
+                    // Fix for CS9035: Required member 'UserViewModel.OwnershipStatus' must be set in the object initializer or attribute constructor.
+
+                    viewModel.Users.Add(new UserViewModel
+                    {
+                        Id = u.Id,
+                        FirstName = u.FirstName ?? "",
+                        LastName = u.LastName ?? "",
+                        Email = u.Email ?? "",
+                        PhoneNumber = u.PhoneNumber ?? "",
+                        Address = u.Address ?? "",
+                        Role = userRoles.FirstOrDefault() ?? "User",
+                        Status = u.Status ?? "Active",
+                        MemberSince = u.MemberSince.ToString("MMM dd, yyyy"),
+                        LastLogin = u.LastLoginDate.HasValue ? u.LastLoginDate.Value.ToString("MMM dd, yyyy HH:mm") : "Never",
+                        ProfileImageUrl = u.ProfileImageUrl ?? "/images/default-avatar.png",
+                        PropertyType = u.PropertyType ?? "Unknown", // Added to fix CS9035
+                        OwnershipStatus = u.OwnershipStatus ?? "Unknown" // Added to fix CS9035
+                    });
+                }
+
+                // Calculate pagination  
+                viewModel.TotalRecords = await _userManager.Users.CountAsync();
+                viewModel.TotalPages = (int)Math.Ceiling(viewModel.TotalRecords / (double)pageSize);
+                viewModel.PageStartRecord = viewModel.TotalRecords == 0 ? 0 : ((page - 1) * pageSize) + 1;
+                viewModel.PageEndRecord = Math.Min(page * pageSize, viewModel.TotalRecords);
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading User Management page");
+                TempData["ErrorMessage"] = "An error occurred while loading the page. Please try again.";
+                return RedirectToAction("AdminDashboard", "Dashboard");
+            }
+
+        }
+        
         // GET: /UserManagement/EditUser/5
         [HttpGet]
         public async Task<IActionResult> EditUser(string id)

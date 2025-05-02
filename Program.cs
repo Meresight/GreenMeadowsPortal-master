@@ -106,5 +106,51 @@ async Task SeedRolesAndAdmin(RoleManager<IdentityRole> roleManager, UserManager<
         {
             await userManager.AddToRoleAsync(newAdmin, "Admin");
         }
+
+        // Removed nested scope to avoid variable name conflict
+        var users = await userManager.Users.ToListAsync();
+        Console.WriteLine($"Number of users in database: {users.Count}");
+
+        foreach (var user in users)
+        {
+            Console.WriteLine($"User: {user.Email}, Roles: {string.Join(", ", await userManager.GetRolesAsync(user))}");
+        }
+        using (var scope = app.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            try
+            {
+                var dbContext = services.GetRequiredService<AppDbContext>();
+
+                // Check if database exists and create it if not
+                dbContext.Database.EnsureCreated();
+
+                // Apply any pending migrations
+                if (dbContext.Database.GetPendingMigrations().Any())
+                {
+                    dbContext.Database.Migrate();
+                }
+
+                // Check if AspNetUsers table exists and has records
+                var usersCount = await dbContext.Users.CountAsync();
+                Console.WriteLine($"AspNetUsers table has {usersCount} records");
+            }
+            catch (Exception ex)
+            {
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "An error occurred while migrating or initializing the database.");
+            }
+        }
+        app.Use(async (context, next) =>
+        {
+            var routeData = context.GetRouteData();
+            if (routeData != null)
+            {
+                var controller = routeData.Values["controller"]?.ToString();
+                var action = routeData.Values["action"]?.ToString();
+                Console.WriteLine($"Route: {controller}/{action}");
+            }
+            await next();
+        });
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,8 +42,7 @@ namespace GreenMeadowsPortal.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction("Login", "Account");
 
-            var roles = await _userManager.GetRolesAsync(user ?? throw new ArgumentNullException(nameof(user)));
-
+            var roles = await _userManager.GetRolesAsync(user);
 
             if (roles.Contains("Admin"))
                 return RedirectToAction("AdminDashboard");
@@ -61,13 +61,13 @@ namespace GreenMeadowsPortal.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var profileModel = new ProfileViewModel
             {
-                FullName = $"{user.FirstName} {user.LastName}",
+                FullName = $"{user.FirstName ?? ""} {user.LastName ?? ""}".Trim(),
                 Email = user.Email ?? string.Empty,
                 PhoneNumber = user.PhoneNumber ?? string.Empty,
                 Address = user.Address ?? "No address available",
                 ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                MemberSince = user.MemberSince.ToString("MMMM yyyy"),
-                Status = user.Status,
+                MemberSince = user.MemberSince != default ? user.MemberSince.ToString("MMMM yyyy") : "Unknown",
+                Status = user.Status ?? "Unknown",
                 Role = roles.FirstOrDefault() ?? "User"
             };
 
@@ -98,12 +98,17 @@ namespace GreenMeadowsPortal.Controllers
                 ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
             };
 
-            // Add notification count
-            model.NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id);
+            // Add notification count - null check to avoid dereference of possibly null reference (line 276)
+            model.NotificationCount = user != null
+                ? await _notificationService.GetUnreadCountAsync(user.Id)
+                : 0;
 
-            // Load recent announcements
+            // Load recent announcements - proper null handling to fix line 278
             var recentAnnouncements = await _announcementService.GetRecentAnnouncementsAsync(3);
-            model.RecentAnnouncements = recentAnnouncements;
+            // Explicit null check instead of null-coalescing operator to handle type compatibility
+            model.RecentAnnouncements = recentAnnouncements != null
+                ? recentAnnouncements
+                : new List<AnnouncementDetailsViewModel>();
 
             return View(model);
         }
@@ -126,8 +131,10 @@ namespace GreenMeadowsPortal.Controllers
                 ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
             };
 
-            // Add notification count
-            model.NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id);
+            // Add notification count - null check to avoid dereference of possibly null reference
+            model.NotificationCount = user != null
+                ? await _notificationService.GetUnreadCountAsync(user.Id)
+                : 0;
 
             return View(model);
         }
@@ -145,10 +152,12 @@ namespace GreenMeadowsPortal.Controllers
                 StaffUser = user,
                 FirstName = user.FirstName ?? "Staff",
                 Role = roles.FirstOrDefault() ?? "Staff",
-                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
+                NotificationCount = user != null
+                    ? await _notificationService.GetUnreadCountAsync(user.Id)
+                    : 0,
                 TotalResidents = 100,
                 PendingRequests = 10,
-                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
+                ProfileImageUrl = user?.ProfileImageUrl ?? "/images/default-avatar.png"
             };
 
             return View(model);
@@ -260,37 +269,104 @@ namespace GreenMeadowsPortal.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UserManagement()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return NotFound("User not found");
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var model = new UserManagementViewModel
+            try
             {
-                FirstName = user.FirstName,
-                Role = roles.FirstOrDefault() ?? "Admin",
-                Users = new List<UserViewModel>(),
-                PendingUsers = new List<PendingUserViewModel>(),
-                Roles = new List<RoleViewModel>(),
-                ActivityLogs = new List<ActivityLogViewModel>(),
-                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
-                CurrentPage = 1,
-                TotalPages = 1,
-                PageStartRecord = 0,
-                PageEndRecord = 0,
-                TotalRecords = 0,
-                PendingRequestsCount = 0,
-                LogsCurrentPage = 1,
-                LogsTotalPages = 1,
-                LogsPageStartRecord = 0,
-                LogsPageEndRecord = 0,
-                TotalLogs = 0,
-                CurrentUserProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
-            };
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null) return NotFound("User not found");
 
-            // Populate your model with actual user data
-            // This would be where you'd query your database
+                // Fix for line 387 - null check before GetRolesAsync
+                var roles = user != null
+                    ? await _userManager.GetRolesAsync(user)
+                    : new List<string>();
 
-            return View(model);
+                // Create a simplified model - we'll bypass complex models for now
+                var viewModel = new UserManagementViewModel
+                {
+                    FirstName = user?.FirstName ?? string.Empty,
+                    Role = roles.FirstOrDefault() ?? "Admin",
+                    NotificationCount = user != null ? await _notificationService.GetUnreadCountAsync(user.Id) : 0,
+                    CurrentUserProfileImageUrl = user?.ProfileImageUrl ?? "/images/default-avatar.png",
+                    Users = new List<UserViewModel>(), // Initialize required property
+                    PendingUsers = new List<PendingUserViewModel>(), // Initialize required property
+                    Roles = new List<RoleViewModel>(), // Initialize required property
+                    ActivityLogs = new List<ActivityLogViewModel>(), // Initialize required property
+                    CurrentPage = 1,
+                    TotalPages = 1,
+                    TotalRecords = 0,
+                    PageStartRecord = 1,
+                    PageEndRecord = 0,
+                    PendingRequestsCount = 0,
+                    LogsCurrentPage = 1,
+                    LogsTotalPages = 1,
+                    LogsPageStartRecord = 1,
+                    LogsPageEndRecord = 0,
+                    TotalLogs = 0
+                };
+
+                // DIRECTLY fetch users without using the service
+                var allUsers = await _userManager.Users.ToListAsync();
+                var userViewModels = new List<UserViewModel>();
+
+                foreach (var u in allUsers)
+                {
+                    // Skip null users
+                    if (u == null) continue;
+
+                    var userRoles = await _userManager.GetRolesAsync(u);
+                    userViewModels.Add(new UserViewModel
+                    {
+                        Id = u.Id,
+                        FirstName = u.FirstName ?? "",
+                        LastName = u.LastName ?? "",
+                        Email = u.Email ?? "",
+                        PhoneNumber = u.PhoneNumber ?? "",
+                        Address = u.Address ?? "",
+                        Role = userRoles.FirstOrDefault() ?? "User",
+                        Status = u.Status ?? "Active",
+                        MemberSince = u.MemberSince != default ? u.MemberSince.ToString("MMM dd, yyyy") : "Unknown",
+                        LastLogin = u.LastLoginDate.HasValue ?
+                            u.LastLoginDate.Value.ToString("MMM dd, yyyy HH:mm") : "Never",
+                        ProfileImageUrl = u.ProfileImageUrl ?? "/images/default-avatar.png",
+                        PropertyType = u.PropertyType ?? "Unknown", // Added to fix CS9035
+                        OwnershipStatus = u.OwnershipStatus ?? "Unknown" // Added to fix CS
+                    });
+                }
+
+                viewModel.Users = userViewModels;
+
+                // Simplified for now
+                viewModel.CurrentPage = 1;
+                viewModel.TotalPages = 1;
+                viewModel.TotalRecords = userViewModels.Count;
+                viewModel.PageStartRecord = 1;
+                viewModel.PageEndRecord = userViewModels.Count;
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                // Return a simple model with error information
+                return View(new UserManagementViewModel
+                {
+                    FirstName = "Error occurred: " + ex.Message,
+                    Role = "Admin",
+                    Users = new List<UserViewModel>(),
+                    PendingUsers = new List<PendingUserViewModel>(), // Initialize required property
+                    Roles = new List<RoleViewModel>(), // Initialize required property
+                    ActivityLogs = new List<ActivityLogViewModel>(), // Initialize required property
+                    CurrentPage = 1,
+                    TotalPages = 1,
+                    TotalRecords = 0,
+                    PageStartRecord = 1,
+                    PageEndRecord = 0,
+                    PendingRequestsCount = 0,
+                    LogsCurrentPage = 1,
+                    LogsTotalPages = 1,
+                    LogsPageStartRecord = 1,
+                    LogsPageEndRecord = 0,
+                    TotalLogs = 0
+                });
+            }
         }
         // Add this to your DashboardController.cs
 
@@ -322,6 +398,22 @@ namespace GreenMeadowsPortal.Controllers
         private async Task<BillingViewModel> PrepareAdminBillingViewModel(int? year)
         {
             var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                // Return a minimal model if user is null
+                return new BillingViewModel
+                {
+                    FirstName = "",
+                    LastName = "",
+                    Role = "Admin",
+                    ProfileImageUrl = "/images/default-avatar.png",
+                    NotificationCount = 0,
+                    SelectedYear = year ?? DateTime.Now.Year,
+                    YearOptions = new List<SelectListItem>()
+                };
+            }
+
+            // Fix for line 411 - null check before GetRolesAsync is now handled with the early return above
             var roles = await _userManager.GetRolesAsync(user);
             var currentYear = DateTime.Now.Year;
             var selectedYear = year ?? currentYear;
@@ -346,6 +438,22 @@ namespace GreenMeadowsPortal.Controllers
         private async Task<BillingViewModel> PrepareStaffBillingViewModel(int? year)
         {
             var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                // Return a minimal model if user is null
+                return new BillingViewModel
+                {
+                    FirstName = "",
+                    LastName = "",
+                    Role = "Staff",
+                    ProfileImageUrl = "/images/default-avatar.png",
+                    NotificationCount = 0,
+                    SelectedYear = year ?? DateTime.Now.Year,
+                    YearOptions = new List<SelectListItem>()
+                };
+            }
+
+            // Fix for line 435 - null check before GetRolesAsync is now handled with the early return above
             var roles = await _userManager.GetRolesAsync(user);
             var currentYear = DateTime.Now.Year;
             var selectedYear = year ?? currentYear;
@@ -370,6 +478,21 @@ namespace GreenMeadowsPortal.Controllers
         private async Task<BillingViewModel> PrepareHomeownerBillingViewModel(int? year)
         {
             var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                // Return a minimal model if user is null
+                return new BillingViewModel
+                {
+                    FirstName = "",
+                    LastName = "",
+                    Role = "Homeowner",
+                    ProfileImageUrl = "/images/default-avatar.png",
+                    NotificationCount = 0,
+                    SelectedYear = year ?? DateTime.Now.Year,
+                    YearOptions = new List<SelectListItem>()
+                };
+            }
+
             var roles = await _userManager.GetRolesAsync(user);
             var currentYear = DateTime.Now.Year;
             var selectedYear = year ?? currentYear;

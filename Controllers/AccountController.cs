@@ -51,7 +51,28 @@ namespace GreenMeadowsPortal.Controllers
             }
             return View(model);
         }
+        [HttpGet]
+        public async Task<IActionResult> AdminProfile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
 
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var profileModel = new ProfileViewModel
+            {
+                FullName = $"{user.FirstName} {user.LastName}",
+                Email = user.Email ?? string.Empty,
+                PhoneNumber = user.PhoneNumber ?? string.Empty,
+                Address = user.Address ?? string.Empty,
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-profile.png",
+                MemberSince = user.MemberSince.ToString("MMMM yyyy"),
+                Status = user.Status ?? "Active",
+                Role = roles.FirstOrDefault() ?? "User"
+            };
+
+            return View(profileModel);
+        }
         [HttpGet]
         public IActionResult Register()
         {

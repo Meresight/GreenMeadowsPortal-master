@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace GreenMeadowsPortal.Views.Dashboard
+namespace GreenMeadowsPortal.Views.UserManagement
 {
     public class AddUserModel : PageModel
     {
