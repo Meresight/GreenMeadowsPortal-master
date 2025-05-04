@@ -103,6 +103,15 @@ namespace GreenMeadowsPortal.Services
         {
             try
             {
+                _logger.LogInformation($"Starting LogActivityAsync for user {userId}, activity {activityType}");
+
+                // Don't create an activity log for user deletion
+                if (activityType == "user-deleted")
+                {
+                    _logger.LogInformation($"Skipping activity log for deletion of user {userId} to prevent duplication");
+                    return;
+                }
+
                 var activityLog = new ActivityLog
                 {
                     UserId = userId,
@@ -112,12 +121,26 @@ namespace GreenMeadowsPortal.Services
                     Timestamp = DateTime.UtcNow
                 };
 
+                // Get the user without including navigation properties to prevent duplication
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    _logger.LogWarning($"User {userId} not found when logging activity {activityType}");
+                    return; // Don't log activity for non-existent users
+                }
+
                 _context.ActivityLogs.Add(activityLog);
+
+                // Save changes without tracking related entities
+                _context.ChangeTracker.AutoDetectChangesEnabled = false;
                 await _context.SaveChangesAsync();
+                _context.ChangeTracker.AutoDetectChangesEnabled = true;
+
+                _logger.LogInformation($"Successfully logged activity {activityType} for user {userId}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to log user activity");
+                _logger.LogError(ex, $"Failed to log user activity for user {userId}: {ex.Message}");
             }
         }
 

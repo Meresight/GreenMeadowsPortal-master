@@ -102,27 +102,39 @@ document.addEventListener('DOMContentLoaded', function () {
         confirmDeleteBtn.addEventListener('click', function () {
             const userId = this.getAttribute('data-user-id');
 
+            // Set the user ID in the hidden field
+            if (document.getElementById('delete-user-id')) {
+                document.getElementById('delete-user-id').value = userId;
+            }
+
             // Show loading indicator
+            const originalText = this.innerHTML;
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
             this.disabled = true;
 
             // Get the token
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-            // Create form data with the token
+            // Create form data
             const formData = new FormData();
             formData.append('id', userId);
             formData.append('__RequestVerificationToken', token);
 
-            // Send the AJAX request with the token in both body and header
+            // Send the AJAX request
             fetch('/UserManagement/DeleteUser', {
                 method: 'POST',
                 headers: {
-                    'RequestVerificationToken': token
+                    'RequestVerificationToken': token,
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: formData
             })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         showAlert('success', data.message || 'User deleted successfully');
@@ -131,15 +143,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         deleteConfirmationModal.classList.remove('show');
                         deleteConfirmationModal.style.display = 'none';
 
-                        // Reload the page after a short delay
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
+                        // Reload the page immediately
+                        window.location.reload();
                     } else {
                         showAlert('danger', data.message || 'Failed to delete user');
 
                         // Reset button
-                        this.innerHTML = 'Delete User';
+                        this.innerHTML = originalText;
                         this.disabled = false;
 
                         // Close the modal
@@ -149,10 +159,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showAlert('danger', 'An error occurred while deleting the user');
+                    showAlert('danger', 'An error occurred while deleting the user: ' + error.message);
 
                     // Reset button
-                    this.innerHTML = 'Delete User';
+                    this.innerHTML = originalText;
                     this.disabled = false;
 
                     // Close the modal
@@ -160,6 +170,39 @@ document.addEventListener('DOMContentLoaded', function () {
                     deleteConfirmationModal.style.display = 'none';
                 });
         });
+    }
+
+    // Helper function to show alerts
+    function showAlert(type, message) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+        const alertHtml = `
+        <div class="alert ${alertClass}">
+            <i class="fas ${icon}"></i> ${message}
+            <button class="close-alert"><i class="fas fa-times"></i></button>
+        </div>
+    `;
+
+        // Find the page header to insert the alert after it
+        const pageHeader = document.querySelector('.page-header');
+        if (pageHeader) {
+            pageHeader.insertAdjacentHTML('afterend', alertHtml);
+
+            // Add event listener to the newly created close button
+            const newAlert = pageHeader.nextElementSibling;
+            const newCloseBtn = newAlert.querySelector('.close-alert');
+            if (newCloseBtn) {
+                newCloseBtn.addEventListener('click', function () {
+                    newAlert.style.display = 'none';
+                });
+            }
+
+            // Auto-hide this alert after 5 seconds
+            setTimeout(function () {
+                newAlert.style.display = 'none';
+            }, 5000);
+        }
     }
 
     // Change User Status

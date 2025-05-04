@@ -344,8 +344,9 @@
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete this user? This action cannot be undone.</p>
-                <form id="delete-user-form">
+                <form id="delete-user-form" method="post" action="/UserManagement/DeleteUser">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" id="delete-user-id" name="id" />
                     <div class="form-actions">
                         <button type="button" class="btn secondary-btn close-modal-btn">Cancel</button>
                         <button type="button" class="btn danger-btn" id="confirm-delete">Delete User</button>

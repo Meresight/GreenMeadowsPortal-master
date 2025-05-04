@@ -67,7 +67,9 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
-
+app.MapControllerRoute(
+    name: "userManagement",
+    pattern: "{controller=UserManagement}/{action=Index}/{id?}");
 // Add API controller routes
 app.MapControllers();
 

@@ -187,7 +187,8 @@ namespace GreenMeadowsPortal.Controllers
         // POST: /UserManagement/SaveUser
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveUser(UserFormViewModel model)
+
+public async Task<IActionResult> SaveUser(UserFormViewModel model)
         {
             try
             {
@@ -259,6 +260,9 @@ namespace GreenMeadowsPortal.Controllers
                     profileImageUrl = await ProcessProfileImageUpload(model.ProfileImage);
                 }
 
+                // Get current user for activity logging
+                var loggedInUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
+
                 if (string.IsNullOrEmpty(model.Id))
                 {
                     // Creating a new user
@@ -313,16 +317,8 @@ namespace GreenMeadowsPortal.Controllers
                         }
 
                         // Log user creation
-                        var creatorUser = await _userManager.GetUserAsync(User);
-                        if (creatorUser == null)
-                        {
-                            TempData["ErrorMessage"] = "Current user could not be identified.";
-                            return RedirectToAction("UserManagement", "Dashboard");
-                        }
-
-                        // Log user creation
                         await _userService.LogActivityAsync(
-                            creatorUser.Id,
+                            loggedInUserId,
                             "user-created",
                             $"Created new user: {newUser.Email}",
                             HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
@@ -358,8 +354,6 @@ namespace GreenMeadowsPortal.Controllers
                     existingUser.LastName = model.LastName;
                     existingUser.Email = model.Email;
                     existingUser.UserName = model.Email; // Important: UserName needs to be updated too
-                    existingUser.NormalizedEmail = model.Email.ToUpper(); // Update normalized email
-                    existingUser.NormalizedUserName = model.Email.ToUpper(); // Update normalized username
                     existingUser.PhoneNumber = model.PhoneNumber;
                     existingUser.Address = model.Address ?? string.Empty;
                     existingUser.Unit = model.Unit ?? string.Empty;
@@ -425,14 +419,8 @@ namespace GreenMeadowsPortal.Controllers
                         }
 
                         // Log user update
-                        var updaterUser = await _userManager.GetUserAsync(User);
-                        if (updaterUser == null)
-                        {
-                            TempData["ErrorMessage"] = "Current user could not be identified.";
-                            return RedirectToAction("UserManagement", "Dashboard");
-                        }
                         await _userService.LogActivityAsync(
-                            updaterUser.Id,
+                            loggedInUserId,
                             "user-updated",
                             $"Updated user: {existingUser.Email}",
                             HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
@@ -625,6 +613,8 @@ namespace GreenMeadowsPortal.Controllers
         // POST: /UserManagement/DeleteUser
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Route("DeleteUser")] // Add this line to ensure the route is properly registered
+
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
@@ -656,7 +646,7 @@ namespace GreenMeadowsPortal.Controllers
                     }
                 }
 
-                // Log user deletion
+                // Log activity before deleting the user
                 await _userService.LogActivityAsync(
                     User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system",
                     "user-deleted",
@@ -664,6 +654,7 @@ namespace GreenMeadowsPortal.Controllers
                     HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
                 );
 
+                // Now delete the user
                 var result = await _userManager.DeleteAsync(user);
                 if (result.Succeeded)
                 {
@@ -727,9 +718,11 @@ namespace GreenMeadowsPortal.Controllers
 
                 if (result.Succeeded)
                 {
-                    // Log status change
+                    // Log status change using the user service
+                    var loggedInUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
+
                     await _userService.LogActivityAsync(
-                        User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system",
+                        loggedInUserId,
                         "status-change",
                         $"Changed status of user {user.Email} to {status}",
                         HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
