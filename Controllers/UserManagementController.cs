@@ -287,7 +287,7 @@ namespace GreenMeadowsPortal.Controllers
                         VehicleInfo = model.Role != "Homeowner" ? "N/A" : (model.VehicleInfo ?? "N/A"),
                         ResidentCount = model.ResidentCount ?? 0,
                         Status = model.Status,
-                        MemberSince = DateTime.Now,
+                        MemberSince = DateTime.Now, 
                         ProfileImageUrl = profileImageUrl ?? "/images/default-avatar.png",
                         ReceiveEmailNotifications = model.ReceiveNotifications,
                         ReceiveSmsNotifications = model.ReceiveSMS,
@@ -630,7 +630,7 @@ namespace GreenMeadowsPortal.Controllers
                 if (string.IsNullOrEmpty(userId))
                 {
                     TempData["ErrorMessage"] = "User ID is required.";
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index", "Dashboard", new { area = "", controller = "Dashboard", action = "UserManagement" });
                 }
 
                 var user = await _userManager.FindByIdAsync(userId);
@@ -638,7 +638,7 @@ namespace GreenMeadowsPortal.Controllers
                 {
                     _logger.LogWarning($"User not found with ID: {userId}");
                     TempData["ErrorMessage"] = "User not found.";
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index", "Dashboard", new { area = "", controller = "Dashboard", action = "UserManagement" });
                 }
 
                 // Generate token and reset password
@@ -667,11 +667,12 @@ namespace GreenMeadowsPortal.Controllers
                     {
                         _logger.LogInformation($"Email notification for password reset would be sent to {user.Email}");
                         // In a real implementation, you would call an email service here
+                        await SendPasswordResetEmail(user, newPassword);
                     }
 
                     _logger.LogInformation($"Password reset successful for user {user.Email}");
                     TempData["SuccessMessage"] = "Password reset successfully.";
-                    return RedirectToAction("Index");
+                    return RedirectToAction("UserManagement", "Dashboard");
                 }
                 else
                 {
@@ -682,23 +683,30 @@ namespace GreenMeadowsPortal.Controllers
                     }
 
                     TempData["ErrorMessage"] = $"Failed to reset password: {string.Join(", ", result.Errors.Select(e => e.Description))}";
-                    return RedirectToAction("Index");
+                    return RedirectToAction("UserManagement", "Dashboard");
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error resetting password for user {userId}");
                 TempData["ErrorMessage"] = "An error occurred: " + ex.Message;
-                return RedirectToAction("Index");
+                return RedirectToAction("UserManagement", "Dashboard");
             }
         }
-// POST: /UserManagement/DeleteUser
-[HttpPost]
+        // POST: /UserManagement/DeleteUser
+        [HttpPost]
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
             {
                 _logger.LogInformation($"Attempting to delete user with ID: {id}");
+
+                // Validate ID
+                if (string.IsNullOrEmpty(id))
+                {
+                    _logger.LogWarning("Delete user attempt with empty ID");
+                    return Json(new { success = false, message = "Invalid user ID provided." });
+                }
 
                 var user = await _userManager.FindByIdAsync(id);
                 if (user == null)
@@ -715,27 +723,6 @@ namespace GreenMeadowsPortal.Controllers
                     {
                         _logger.LogWarning("Attempt to delete the last admin user prevented");
                         return Json(new { success = false, message = "Cannot delete the last admin user." });
-                    }
-                }
-
-                // Delete user's profile image if it exists
-                if (!string.IsNullOrEmpty(user.ProfileImageUrl) &&
-                    !user.ProfileImageUrl.Contains("default-avatar") &&
-                    !user.ProfileImageUrl.Contains("default-profile"))
-                {
-                    try
-                    {
-                        string fullPath = Path.Combine(_hostEnvironment.WebRootPath, user.ProfileImageUrl.TrimStart('/'));
-                        if (System.IO.File.Exists(fullPath))
-                        {
-                            System.IO.File.Delete(fullPath);
-                            _logger.LogInformation($"Deleted profile image at {fullPath}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Error deleting profile image for user {id}");
-                        // Continue with user deletion even if image deletion fails
                     }
                 }
 
