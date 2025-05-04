@@ -35,6 +35,8 @@ namespace GreenMeadowsPortal.ViewModels
 
         [Display(Name = "User Role")]
         public string Role { get; set; } = string.Empty;
+        public int NotificationCount { get; set; }
+
     }
 
     public class EmergencyContact
