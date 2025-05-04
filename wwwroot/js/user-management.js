@@ -1,4 +1,4 @@
-﻿// User Management JavaScript
+﻿// User Management JavaScript - Fixed Version
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('User Management JS loaded');
@@ -18,8 +18,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const userRows = document.querySelectorAll('.users-table tbody tr');
 
         userRows.forEach(row => {
-            const userRole = row.querySelector('td:nth-child(2)').textContent.trim();
-            const userStatus = row.querySelector('td:nth-child(3) .status').textContent.trim();
+            const userRole = row.querySelector('td:nth-child(2)')?.textContent.trim();
+            const userStatusEl = row.querySelector('td:nth-child(3) .status');
+            const userStatus = userStatusEl ? userStatusEl.textContent.trim() : '';
 
             const roleMatch = roleValue === 'All Roles' || userRole === roleValue;
             const statusMatch = statusValue === 'All Statuses' || userStatus === statusValue;
@@ -43,8 +44,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const userRows = document.querySelectorAll('.users-table tbody tr');
 
         userRows.forEach(row => {
-            const userName = row.querySelector('.user-name').textContent.toLowerCase();
-            const userEmail = row.querySelector('.user-email').textContent.toLowerCase();
+            const userNameEl = row.querySelector('.user-name');
+            const userEmailEl = row.querySelector('.user-email');
+
+            if (!userNameEl || !userEmailEl) return;
+
+            const userName = userNameEl.textContent.toLowerCase();
+            const userEmail = userEmailEl.textContent.toLowerCase();
 
             if (userName.includes(searchTerm) || userEmail.includes(searchTerm)) {
                 row.style.display = '';
@@ -59,12 +65,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const resetPasswordModal = document.getElementById('reset-password-modal');
     const resetUserId = document.getElementById('reset-user-id');
 
-    if (resetPasswordBtns && resetPasswordModal && resetUserId) {
+    if (resetPasswordBtns.length > 0 && resetPasswordModal && resetUserId) {
         resetPasswordBtns.forEach(btn => {
-            btn.addEventListener('click', function () {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
                 const userId = this.getAttribute('data-user-id');
                 resetUserId.value = userId;
                 resetPasswordModal.classList.add('show');
+                resetPasswordModal.style.display = 'flex';
             });
         });
     }
@@ -73,13 +82,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const deleteUserBtns = document.querySelectorAll('.delete-user-btn');
     const deleteConfirmationModal = document.getElementById('delete-confirmation-modal');
     const confirmDeleteBtn = document.getElementById('confirm-delete');
+    let userIdToDelete = null;
 
-    if (deleteUserBtns && deleteConfirmationModal && confirmDeleteBtn) {
+    if (deleteUserBtns.length > 0 && deleteConfirmationModal && confirmDeleteBtn) {
         deleteUserBtns.forEach(btn => {
-            btn.addEventListener('click', function () {
-                const userId = this.getAttribute('data-user-id');
-                confirmDeleteBtn.setAttribute('data-user-id', userId);
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                userIdToDelete = this.getAttribute('data-user-id');
+                confirmDeleteBtn.setAttribute('data-user-id', userIdToDelete);
                 deleteConfirmationModal.classList.add('show');
+                deleteConfirmationModal.style.display = 'flex';
             });
         });
 
@@ -94,42 +107,50 @@ document.addEventListener('DOMContentLoaded', function () {
         confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
         confirmDeleteBtn.disabled = true;
 
+        // Create the form data
+        const formData = new FormData();
+        formData.append('id', userId);
+
+        // Get the anti-forgery token
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
         // Send AJAX request to delete user
         fetch('/UserManagement/DeleteUser', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgeryToken()
+                'RequestVerificationToken': token
             },
-            body: JSON.stringify({ id: userId })
+            body: formData
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     showAlert('success', data.message || 'User deleted successfully.');
 
                     // Close modal
                     deleteConfirmationModal.classList.remove('show');
+                    deleteConfirmationModal.style.display = 'none';
 
-                    // Remove the row from the table
-                    const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
-                    if (userRow) {
-                        userRow.remove();
-                    } else {
-                        // Reload the page if the row can't be found
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    }
+                    // Remove the row from the table or reload
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
                 } else {
                     showAlert('danger', data.message || 'An error occurred while deleting the user.');
                     deleteConfirmationModal.classList.remove('show');
+                    deleteConfirmationModal.style.display = 'none';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 showAlert('danger', 'An error occurred while deleting the user.');
                 deleteConfirmationModal.classList.remove('show');
+                deleteConfirmationModal.style.display = 'none';
             })
             .finally(() => {
                 // Reset button state
@@ -141,9 +162,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Change User Status
     const statusChangeBtns = document.querySelectorAll('.change-status-btn');
 
-    if (statusChangeBtns) {
+    if (statusChangeBtns.length > 0) {
         statusChangeBtns.forEach(btn => {
-            btn.addEventListener('click', function () {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
                 const userId = this.getAttribute('data-user-id');
                 const newStatus = this.getAttribute('data-status');
 
@@ -155,30 +178,33 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function changeUserStatus(userId, status) {
+        // Create the form data
+        const formData = new FormData();
+        formData.append('userId', userId);
+        formData.append('status', status);
+
+        // Get the anti-forgery token
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
         fetch('/UserManagement/ChangeUserStatus', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'RequestVerificationToken': getAntiForgeryToken()
+                'RequestVerificationToken': token
             },
-            body: JSON.stringify({ userId: userId, status: status })
+            body: formData
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     showAlert('success', data.message || `User status changed to ${status} successfully.`);
-
-                    // Update the status in the table
-                    const statusCell = document.querySelector(`tr[data-user-id="${userId}"] td:nth-child(3) .status`);
-                    if (statusCell) {
-                        statusCell.textContent = status;
-                        statusCell.className = `status ${status.toLowerCase()}`;
-                    } else {
-                        // Reload the page if the cell can't be found
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
                 } else {
                     showAlert('danger', data.message || 'An error occurred while changing the user status.');
                 }
@@ -192,12 +218,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Close Modals
     const closeModalBtns = document.querySelectorAll('.close-modal, .close-modal-btn');
 
-    if (closeModalBtns) {
+    if (closeModalBtns.length > 0) {
         closeModalBtns.forEach(btn => {
             btn.addEventListener('click', function () {
                 const modal = this.closest('.modal');
                 if (modal) {
                     modal.classList.remove('show');
+                    modal.style.display = 'none';
                 }
             });
         });
@@ -209,6 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
         modals.forEach(modal => {
             if (event.target === modal) {
                 modal.classList.remove('show');
+                modal.style.display = 'none';
             }
         });
     });
@@ -216,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Toggle Password Visibility
     const togglePasswordBtns = document.querySelectorAll('.toggle-password');
 
-    if (togglePasswordBtns) {
+    if (togglePasswordBtns.length > 0) {
         togglePasswordBtns.forEach(btn => {
             btn.addEventListener('click', function () {
                 const passwordInput = this.previousElementSibling;
@@ -238,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Close Alert Messages
     const closeAlertBtns = document.querySelectorAll('.close-alert');
 
-    if (closeAlertBtns) {
+    if (closeAlertBtns.length > 0) {
         closeAlertBtns.forEach(btn => {
             btn.addEventListener('click', function () {
                 const alert = this.closest('.alert');
@@ -259,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Helper Functions
     function getAntiForgeryToken() {
-        return document.querySelector('input[name="__RequestVerificationToken"]').value;
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
     }
 
     function showAlert(type, message) {

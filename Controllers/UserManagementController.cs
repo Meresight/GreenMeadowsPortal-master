@@ -624,6 +624,8 @@ namespace GreenMeadowsPortal.Controllers
         {
             try
             {
+                _logger.LogInformation($"Password reset requested for user ID: {userId}");
+
                 // Ensure userId is not null/empty
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -634,6 +636,7 @@ namespace GreenMeadowsPortal.Controllers
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
+                    _logger.LogWarning($"User not found with ID: {userId}");
                     TempData["ErrorMessage"] = "User not found.";
                     return RedirectToAction("Index");
                 }
@@ -651,9 +654,22 @@ namespace GreenMeadowsPortal.Controllers
                         await _userManager.UpdateAsync(user);
                     }
 
-                    // Add logging message to help debugging
-                    _logger.LogInformation($"Password reset successful for user {user.Email}");
+                    // Log the password reset
+                    await _userService.LogActivityAsync(
+                        User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system",
+                        "password-reset",
+                        $"Password reset for user {user.Email}",
+                        HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
+                    );
 
+                    // Send email if requested (would be implemented in a real system)
+                    if (sendEmail)
+                    {
+                        _logger.LogInformation($"Email notification for password reset would be sent to {user.Email}");
+                        // In a real implementation, you would call an email service here
+                    }
+
+                    _logger.LogInformation($"Password reset successful for user {user.Email}");
                     TempData["SuccessMessage"] = "Password reset successfully.";
                     return RedirectToAction("Index");
                 }
@@ -662,7 +678,7 @@ namespace GreenMeadowsPortal.Controllers
                     // Log specific errors
                     foreach (var error in result.Errors)
                     {
-                        _logger.LogError($"Password reset error: {error.Description}");
+                        _logger.LogError($"Password reset error for {userId}: {error.Description}");
                     }
 
                     TempData["ErrorMessage"] = $"Failed to reset password: {string.Join(", ", result.Errors.Select(e => e.Description))}";
@@ -671,20 +687,23 @@ namespace GreenMeadowsPortal.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error resetting password");
+                _logger.LogError(ex, $"Error resetting password for user {userId}");
                 TempData["ErrorMessage"] = "An error occurred: " + ex.Message;
                 return RedirectToAction("Index");
             }
         }
-        // POST: /UserManagement/DeleteUser
-        [HttpPost]
+// POST: /UserManagement/DeleteUser
+[HttpPost]
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
             {
+                _logger.LogInformation($"Attempting to delete user with ID: {id}");
+
                 var user = await _userManager.FindByIdAsync(id);
                 if (user == null)
                 {
+                    _logger.LogWarning($"User not found with ID: {id}");
                     return Json(new { success = false, message = "User not found." });
                 }
 
@@ -694,6 +713,7 @@ namespace GreenMeadowsPortal.Controllers
                     var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
                     if (adminUsers.Count <= 1)
                     {
+                        _logger.LogWarning("Attempt to delete the last admin user prevented");
                         return Json(new { success = false, message = "Cannot delete the last admin user." });
                     }
                 }
@@ -701,42 +721,47 @@ namespace GreenMeadowsPortal.Controllers
                 // Delete user's profile image if it exists
                 if (!string.IsNullOrEmpty(user.ProfileImageUrl) &&
                     !user.ProfileImageUrl.Contains("default-avatar") &&
-                    System.IO.File.Exists(_hostEnvironment.WebRootPath + user.ProfileImageUrl))
+                    !user.ProfileImageUrl.Contains("default-profile"))
                 {
-                    System.IO.File.Delete(_hostEnvironment.WebRootPath + user.ProfileImageUrl);
-                }
-
-                // Log user deletion
-                // Ensure `adminUser` is not null before accessing its properties
-                var adminUser = await _userManager.GetUserAsync(User);
-                if (adminUser == null)
-                {
-                    TempData["ErrorMessage"] = "Current user could not be identified.";
-                    return RedirectToAction("Index");
+                    try
+                    {
+                        string fullPath = Path.Combine(_hostEnvironment.WebRootPath, user.ProfileImageUrl.TrimStart('/'));
+                        if (System.IO.File.Exists(fullPath))
+                        {
+                            System.IO.File.Delete(fullPath);
+                            _logger.LogInformation($"Deleted profile image at {fullPath}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error deleting profile image for user {id}");
+                        // Continue with user deletion even if image deletion fails
+                    }
                 }
 
                 // Log user deletion
                 await _userService.LogActivityAsync(
-                    adminUser.Id,
+                    User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system",
                     "user-deleted",
                     $"Deleted user: {user.Email}",
                     HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
                 );
 
-
                 var result = await _userManager.DeleteAsync(user);
                 if (result.Succeeded)
                 {
+                    _logger.LogInformation($"Successfully deleted user {id}");
                     return Json(new { success = true, message = "User deleted successfully." });
                 }
                 else
                 {
+                    _logger.LogError($"Failed to delete user {id}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
                     return Json(new { success = false, message = "Failed to delete user." });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting user");
+                _logger.LogError(ex, $"Error deleting user {id}");
                 return Json(new { success = false, message = "An error occurred: " + ex.Message });
             }
         }
@@ -747,9 +772,17 @@ namespace GreenMeadowsPortal.Controllers
         {
             try
             {
+                _logger.LogInformation($"Attempting to change status for user {userId} to {status}");
+
+                if (string.IsNullOrEmpty(status))
+                {
+                    return Json(new { success = false, message = "Status cannot be empty." });
+                }
+
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
+                    _logger.LogWarning($"User not found with ID: {userId}");
                     return Json(new { success = false, message = "User not found." });
                 }
 
@@ -759,6 +792,7 @@ namespace GreenMeadowsPortal.Controllers
                     var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
                     if (adminUsers.Count <= 1)
                     {
+                        _logger.LogWarning("Attempt to change status of the last admin user prevented");
                         return Json(new { success = false, message = "Cannot modify status of the last admin user." });
                     }
                 }
@@ -768,33 +802,26 @@ namespace GreenMeadowsPortal.Controllers
 
                 if (result.Succeeded)
                 {
-                    var currentUser = await _userManager.GetUserAsync(User);
-
-                    if (currentUser == null)
-                    {
-                        TempData["ErrorMessage"] = "Current user could not be identified.";
-                        return RedirectToAction("Index");
-                    }
-
                     // Log status change
                     await _userService.LogActivityAsync(
-                        currentUser.Id,
+                        User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system",
                         "status-change",
                         $"Changed status of user {user.Email} to {status}",
                         HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
                     );
 
-
+                    _logger.LogInformation($"Successfully changed status for user {userId} to {status}");
                     return Json(new { success = true, message = $"User status changed to {status} successfully." });
                 }
                 else
                 {
+                    _logger.LogError($"Failed to update user status: {string.Join(", ", result.Errors.Select(e => e.Description))}");
                     return Json(new { success = false, message = "Failed to update user status." });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error changing user status");
+                _logger.LogError(ex, $"Error changing user status for user {userId}");
                 return Json(new { success = false, message = "An error occurred: " + ex.Message });
             }
         }
