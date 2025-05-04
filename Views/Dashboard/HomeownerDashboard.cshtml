@@ -218,8 +218,7 @@
                                                 <span class="date">@(announcement.PublishDate?.ToString("MMM dd, yyyy") ?? announcement.CreatedDate.ToString("MMM dd, yyyy"))</span>
                                             </div>
                                             <h3>@announcement.Title</h3>
-                                            <p>@(announcement.Content.Length > 100 ? announcement.Content.Substring(0, 100) + "..." : announcement.Content)</p>
-                                            <div class="announcement-footer">
+                                        <p>@Html.Raw(announcement.Content.Length > 100 ? announcement.Content.Substring(0, 100) + "..." : announcement.Content)</p>                                            <div class="announcement-footer">
                                                 <a asp-controller="Announcement" asp-action="Details" asp-route-id="@announcement.Id" class="read-more">Read More</a>
                                             </div>
                                         </div>

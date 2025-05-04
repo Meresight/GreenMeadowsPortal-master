@@ -616,10 +616,11 @@ namespace GreenMeadowsPortal.Services
             try
             {
                 var publishedAnnouncements = await _context.Announcements
-                    .Where(a =>
-                        a.Status == AnnouncementStatus.Published &&
-                        a.PublishDate <= DateTime.Now &&
-                        (a.ExpirationDate == null || a.ExpirationDate > DateTime.Now))
+                  .Where(a =>
+    a.Status == AnnouncementStatus.Published &&
+    a.PublishDate <= DateTime.Now &&
+    (a.ExpirationDate == null || a.ExpirationDate > DateTime.Now) &&
+    (a.TargetAudience == "All" || a.TargetAudience == "Homeowners"))
                     .Select(a => a.Id)
                     .ToListAsync();
 
