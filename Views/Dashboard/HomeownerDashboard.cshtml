@@ -343,53 +343,51 @@
         </div>
 
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                // User dropdown toggle
-                const userDropdown = document.querySelector('.user-dropdown');
-                if (userDropdown) {
-                    userDropdown.addEventListener('click', function(event) {
-                        event.stopPropagation();
-                        this.classList.toggle('open');
-                        const dropdownMenu = this.querySelector('.dropdown-menu');
-                        dropdownMenu.classList.toggle('show');
-                    });
+           document.addEventListener('DOMContentLoaded', function() {
+            // User dropdown toggle
+            const userDropdown = document.querySelector('.user-dropdown');
+            if (userDropdown) {
+                userDropdown.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const dropdownMenu = this.querySelector('.dropdown-menu');
+                    dropdownMenu.classList.toggle('show');
 
                     // Close dropdown when clicking outside
-                    document.addEventListener('click', function(event) {
-                        if (!userDropdown.contains(event.target)) {
-                            userDropdown.classList.remove('open');
-                            const dropdownMenu = userDropdown.querySelector('.dropdown-menu');
-                            if (dropdownMenu) dropdownMenu.classList.remove('show');
+                    document.addEventListener('click', function closeUserDropdown(e) {
+                        if (!userDropdown.contains(e.target)) {
+                            dropdownMenu.classList.remove('show');
+                            document.removeEventListener('click', closeUserDropdown);
                         }
                     });
-                }
-
-                // Mobile sidebar toggle
-                const sidebarToggle = document.getElementById('sidebar-toggle');
-                const sidebar = document.getElementById('sidebar');
-                if (sidebarToggle && sidebar) {
-                    sidebarToggle.addEventListener('click', function() {
-                        sidebar.classList.toggle('active');
-                    });
-                }
-
-                // Close alert buttons
-                const closeButtons = document.querySelectorAll('.close-alert');
-                closeButtons.forEach(function(button) {
-                    button.addEventListener('click', function() {
-                        var alert = this.parentElement;
-                        alert.style.display = 'none';
-                    });
                 });
+            }
 
-                // Auto-hide alerts after 5 seconds
-                setTimeout(function() {
-                    var alerts = document.querySelectorAll('.alert');
-                    alerts.forEach(function(alert) {
-                        alert.style.display = 'none';
-                    });
-                }, 5000);
+            // Mobile sidebar toggle
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                });
+            }
+
+            // Close alert button
+            const closeButtons = document.querySelectorAll('.close-alert');
+            closeButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var alert = this.parentElement;
+                    alert.style.display = 'none';
+                });
             });
+
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                var alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    alert.style.display = 'none';
+                });
+            }, 5000);
+        });
         </script>
     </body>
     </html>

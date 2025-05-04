@@ -24,9 +24,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/admin.css">
-    <link rel="stylesheet" href="~/css/announcement.css">
-</head>
-<body>
+    <link rel="stylesheet" href="~/css/announce-index.css">
+ </head>
+ <body>
     <div class="wrapper">
         <!-- Sidebar Navigation -->
         <nav id="sidebar" class="sidebar">
@@ -38,10 +38,6 @@
             <div class="user-profile">
                 <div class="user-avatar">
                     <img src="@Model.ProfileImageUrl" alt="User Avatar">
-                    @if (Model.CurrentUserRole == "Staff")
-                    {
-                        <div class="forum-logo">F</div>
-                    }
                 </div>
                 <div class="user-info">
                     <h4>@Model.FirstName</h4>
@@ -86,7 +82,7 @@
 
             <div class="sidebar-footer">
                 <a href="/Settings"><i class="fas fa-cog"></i> Settings</a>
-                <a asp-controller="Account" asp-action="Login"><i class="fas fa-sign-out-alt"></i>Logout</a>
+                <a asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
             </div>
         </nav>
 
@@ -97,6 +93,11 @@
                 <button id="sidebar-toggle" class="sidebar-toggle">
                     <i class="fas fa-bars"></i>
                 </button>
+
+                <div class="greeting">
+                    <h2>Announcements</h2>
+                    <p>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</p>
+                </div>
 
                 <div class="search-bar">
                     <form asp-action="Index" method="get">
@@ -121,21 +122,20 @@
                         <div class="dropdown-menu">
                             <a asp-controller="Dashboard" asp-action="Profile"><i class="fas fa-user"></i> My Profile</a>
                             <a href="/Settings"><i class="fas fa-cog"></i> Settings</a>
-                            <a asp-controller="Account" asp-action="Login"><i class="fas fa-sign-out-alt"></i>Logout</a>
+                            <a asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i>Logout</a>
                         </div>
                     </div>
                 </div>
             </header>
 
             <!-- Page Content -->
-
             <main class="main-content">
                 <div class="page-header">
                     <h1>Announcements</h1>
                     <div class="action-buttons">
-                        @if (Model.CurrentUserRole == "Admin")
+                        @if (Model.CurrentUserRole == "Admin" || Model.CurrentUserRole == "Staff")
                         {
-                            <a asp-controller="Announcement" asp-action="Create" class="btn primary-btn">
+                            <a asp-controller="Announcement" asp-action="Create" class="primary-btn">
                                 <i class="fas fa-plus"></i> Create Announcement
                             </a>
                         }
@@ -184,6 +184,13 @@
                             </div>
                             <h3>No Announcements Found</h3>
                             <p>There are no announcements to display at this time.</p>
+
+                            @if (Model.CurrentUserRole == "Admin" || Model.CurrentUserRole == "Staff")
+                            {
+                                <a asp-controller="Announcement" asp-action="Create" class="primary-btn" style="margin-top: 1rem;">
+                                    <i class="fas fa-plus"></i> Create Announcement
+                                </a>
+                            }
                         </div>
                     }
                     else
@@ -213,7 +220,7 @@
                                         @if (Model.CurrentUserRole == "Admin" ||
                                        (Model.CurrentUserRole == "Staff" && announcement.AuthorId == Model.CurrentUserId))
                                         {
-                                            <form asp-action="Publish" asp-route-id="@announcement.Id" method="post" style="display: inline; margin-left: 8px;">
+                                            <form asp-action="Publish" asp-route-id="@announcement.Id" method="post" style="display: inline;">
                                                 @Html.AntiForgeryToken()
                                                 <button type="submit" class="draft-publish-btn">
                                                     <i class="fas fa-paper-plane"></i> Publish
@@ -232,13 +239,18 @@
 
                                     <span class="date">@(announcement.PublishDate?.ToString("MMM dd, yyyy") ?? announcement.CreatedDate.ToString("MMM dd, yyyy"))</span>
                                 </div>
-                                <h3>@announcement.Title</h3>
-                                <p>@Html.Raw(announcement.Content.Length > 150 ? announcement.Content.Substring(0, 150) + "..." : announcement.Content)</p>
+
+                                <div class="announcement-content">
+                                    <h3>@announcement.Title</h3>
+                                    <p>@Html.Raw(announcement.Content.Length > 150 ? announcement.Content.Substring(0, 150) + "..." : announcement.Content)</p>
+                                </div>
+
                                 <div class="announcement-footer">
-                                    <a asp-action="Details" asp-route-id="@announcement.Id" class="read-more">Read More</a>
+                                    <a asp-action="Details" asp-route-id="@announcement.Id" class="read-more">
+                                        Read More <i class="fas fa-chevron-right"></i>
+                                    </a>
                                     <span class="announcement-meta">
-                                        Posted by: @announcement.AuthorName |
-                                        @announcement.ReadCount readers
+                                        By: @announcement.AuthorName | @announcement.ReadCount readers
                                     </span>
                                 </div>
                             </div>
@@ -366,3 +378,4 @@
     </script>
 </body>
 </html>
+```
