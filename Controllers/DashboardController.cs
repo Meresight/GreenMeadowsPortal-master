@@ -59,25 +59,113 @@ namespace GreenMeadowsPortal.Controllers
             if (user == null) return RedirectToAction("Login", "Account");
 
             var roles = await _userManager.GetRolesAsync(user);
-            var profileModel = new ProfileViewModel
+
+            // Redirect to role-specific profile page
+            if (roles.Contains("Admin"))
+                return RedirectToAction("AdminProfile");
+            else if (roles.Contains("Staff"))
+                return RedirectToAction("StaffProfile");
+            else
+                return View("~/Views/Dashboard/Profile.cshtml", CreateProfileViewModel(user, roles));
+        }
+
+        // ✅ AdminProfile View
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AdminProfile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var profileModel = CreateProfileViewModel(user, roles);
+
+            // Add admin-specific details if needed
+
+            return View(profileModel);
+        }
+
+        // ✅ StaffProfile View
+        [Authorize(Roles = "Staff")]
+        public async Task<IActionResult> StaffProfile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            // Create StaffProfileViewModel
+            var staffProfileModel = new StaffProfileViewModel
             {
-                FullName = $"{user.FirstName ?? ""} {user.LastName ?? ""}".Trim(),
+                FullName = $"{user.FirstName} {user.LastName}",
                 Email = user.Email ?? string.Empty,
                 PhoneNumber = user.PhoneNumber ?? string.Empty,
-                Address = user.Address ?? "No address available",
                 ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                MemberSince = user.MemberSince != default ? user.MemberSince.ToString("MMMM yyyy") : "Unknown",
-                Status = user.Status ?? "Unknown",
-                Role = roles.FirstOrDefault() ?? "User"
+                Role = roles.FirstOrDefault() ?? "Staff",
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
+                Department = user.Department ?? "Maintenance",
+                EmployeeId = user.EmployeeId ?? "EMP" + new Random().Next(1000, 9999),
+                Position = user.Position ?? "Staff Member",
+                HireDate = user.MemberSince,
+                Status = user.Status ?? "Active",
+                // Set sample emergency contact data for demo purposes
+                PrimaryContactName = "Jane Doe",
+                PrimaryContactRelationship = "Spouse",
+                PrimaryContactPhone = "(555) 123-4567",
+                PrimaryContactEmail = "jane.doe@example.com",
+                SecondaryContactName = "John Smith",
+                SecondaryContactRelationship = "Parent",
+                SecondaryContactPhone = "(555) 987-6543",
+                SecondaryContactEmail = "john.smith@example.com",
+                // Add sample skills for demo
+                Skills = new List<StaffSkill>
+                {
+                    new StaffSkill
+                    {
+                        Id = 1,
+                        Name = "Plumbing",
+                        Type = "Technical",
+                        Level = "Advanced",
+                        AcquiredDate = new DateTime(2020, 5, 10),
+                        ExpiryDate = null,
+                        Status = "Active"
+                    },
+                    new StaffSkill
+                    {
+                        Id = 2,
+                        Name = "Electrical Maintenance",
+                        Type = "Technical",
+                        Level = "Intermediate",
+                        AcquiredDate = new DateTime(2021, 3, 15),
+                        ExpiryDate = new DateTime(2025, 3, 15),
+                        Status = "Active"
+                    },
+                    new StaffSkill
+                    {
+                        Id = 3,
+                        Name = "CPR Certification",
+                        Type = "Safety",
+                        Level = "Certified",
+                        AcquiredDate = new DateTime(2022, 1, 5),
+                        ExpiryDate = new DateTime(2024, 1, 5),
+                        Status = "Active"
+                    }
+                },
+                // Sample work schedule
+                Schedule = new WorkSchedule
+                {
+                    Monday = "8:00 AM - 4:00 PM",
+                    Tuesday = "8:00 AM - 4:00 PM",
+                    Wednesday = "8:00 AM - 4:00 PM",
+                    Thursday = "8:00 AM - 4:00 PM",
+                    Friday = "8:00 AM - 4:00 PM",
+                    Saturday = "Off",
+                    Sunday = "Off",
+                    Notes = "Available for on-call emergencies on weekends."
+                }
             };
 
-            if (profileModel == null)
-            {
-                TempData["ErrorMessage"] = "Failed to load profile data.";
-                return RedirectToAction("Index", "Home");
-            }
-
-            return View("~/Views/Dashboard/Profile.cshtml", profileModel);
+            return View(staffProfileModel);
         }
 
         // ✅ Homeowner Dashboard
@@ -128,7 +216,10 @@ namespace GreenMeadowsPortal.Controllers
                 Role = roles.FirstOrDefault() ?? "Admin",
                 TotalUsers = 150,
                 ActiveReservations = 20,
-                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png"
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                PendingRequests = 8,
+                OutstandingDues = 24500.00M,
+                UpcomingEvents = 3
             };
 
             // Add notification count - null check to avoid dereference of possibly null reference
@@ -157,7 +248,9 @@ namespace GreenMeadowsPortal.Controllers
                     : 0,
                 TotalResidents = 100,
                 PendingRequests = 10,
-                ProfileImageUrl = user?.ProfileImageUrl ?? "/images/default-avatar.png"
+                ProfileImageUrl = user?.ProfileImageUrl ?? "/images/default-avatar.png",
+                DuePaymentsTotal = 15000.00M,
+                UpcomingEvents = 3
             };
 
             return View(model);
@@ -191,6 +284,23 @@ namespace GreenMeadowsPortal.Controllers
             {
                 return RedirectToAction("HomeownerBilling", new { year });
             }
+        }
+
+        // Helper method to create a ProfileViewModel
+        private ProfileViewModel CreateProfileViewModel(ApplicationUser user, IList<string> roles)
+        {
+            return new ProfileViewModel
+            {
+                FullName = $"{user.FirstName ?? ""} {user.LastName ?? ""}".Trim(),
+                Email = user.Email ?? string.Empty,
+                PhoneNumber = user.PhoneNumber ?? string.Empty,
+                Address = user.Address ?? "No address available",
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                MemberSince = user.MemberSince != default ? user.MemberSince.ToString("MMMM yyyy") : "Unknown",
+                Status = user.Status ?? "Unknown",
+                Role = roles.FirstOrDefault() ?? "User",
+                NotificationCount = _notificationService.GetUnreadCountAsync(user.Id).Result
+            };
         }
 
         // Helper methods to populate role-specific billing data
@@ -537,10 +647,6 @@ namespace GreenMeadowsPortal.Controllers
             return View("Billing", model);
         }
 
-        // Then update your sidebar navigation in all layouts to use BillingRedirect
-        // <a asp-controller="Dashboard" asp-action="BillingRedirect">
-        //    <i class="fas fa-file-invoice-dollar"></i> Billing
-        // </a>
         // ✅ Logout Method
         public async Task<IActionResult> Logout()
         {
