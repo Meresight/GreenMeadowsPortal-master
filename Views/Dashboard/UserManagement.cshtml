@@ -101,8 +101,10 @@
 
                 <div class="navbar-right">
                     <div class="notification-bell">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-count">@Model.NotificationCount</span>
+                        <a asp-controller="Notification" asp-action="Index">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-count">@Model.NotificationCount</span>
+                        </a>
                     </div>
 
                     <div class="user-dropdown">

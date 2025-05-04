@@ -1,4 +1,4 @@
-﻿// User Management JavaScript - Fixed Version
+﻿// Updated user-management.js
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('User Management JS loaded');
@@ -95,68 +95,71 @@ document.addEventListener('DOMContentLoaded', function () {
                 deleteConfirmationModal.style.display = 'flex';
             });
         });
-
-        confirmDeleteBtn.addEventListener('click', function () {
-            const userId = this.getAttribute('data-user-id');
-            deleteUser(userId);
-        });
     }
 
-    function deleteUser(userId) {
-        // Show loading indicator
-        confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-        confirmDeleteBtn.disabled = true;
+    // Handle Delete User confirmation
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', function () {
+            const userId = this.getAttribute('data-user-id');
 
-        // Create the form data
-        const formData = new FormData();
-        formData.append('id', userId);
+            // Show loading indicator
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            this.disabled = true;
 
-        // Get the anti-forgery token
-        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            // Get the token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-        // Send AJAX request to delete user
-        fetch('/UserManagement/DeleteUser', {
-            method: 'POST',
-            headers: {
-                'RequestVerificationToken': token
-            },
-            body: formData
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
+            // Create form data with the token
+            const formData = new FormData();
+            formData.append('id', userId);
+            formData.append('__RequestVerificationToken', token);
+
+            // Send the AJAX request with the token in both body and header
+            fetch('/UserManagement/DeleteUser', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                body: formData
             })
-            .then(data => {
-                if (data.success) {
-                    showAlert('success', data.message || 'User deleted successfully.');
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('success', data.message || 'User deleted successfully');
 
-                    // Close modal
+                        // Close the modal
+                        deleteConfirmationModal.classList.remove('show');
+                        deleteConfirmationModal.style.display = 'none';
+
+                        // Reload the page after a short delay
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showAlert('danger', data.message || 'Failed to delete user');
+
+                        // Reset button
+                        this.innerHTML = 'Delete User';
+                        this.disabled = false;
+
+                        // Close the modal
+                        deleteConfirmationModal.classList.remove('show');
+                        deleteConfirmationModal.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('danger', 'An error occurred while deleting the user');
+
+                    // Reset button
+                    this.innerHTML = 'Delete User';
+                    this.disabled = false;
+
+                    // Close the modal
                     deleteConfirmationModal.classList.remove('show');
                     deleteConfirmationModal.style.display = 'none';
-
-                    // Remove the row from the table or reload
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    showAlert('danger', data.message || 'An error occurred while deleting the user.');
-                    deleteConfirmationModal.classList.remove('show');
-                    deleteConfirmationModal.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('danger', 'An error occurred while deleting the user.');
-                deleteConfirmationModal.classList.remove('show');
-                deleteConfirmationModal.style.display = 'none';
-            })
-            .finally(() => {
-                // Reset button state
-                confirmDeleteBtn.innerHTML = 'Delete User';
-                confirmDeleteBtn.disabled = false;
-            });
+                });
+        });
     }
 
     // Change User Status
@@ -178,14 +181,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function changeUserStatus(userId, status) {
-        // Create the form data
+        // Get the token
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        // Create form data
         const formData = new FormData();
         formData.append('userId', userId);
         formData.append('status', status);
+        formData.append('__RequestVerificationToken', token);
 
-        // Get the anti-forgery token
-        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-
+        // Send AJAX request
         fetch('/UserManagement/ChangeUserStatus', {
             method: 'POST',
             headers: {
@@ -193,25 +198,20 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             body: formData
         })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showAlert('success', data.message || `User status changed to ${status} successfully.`);
+                    showAlert('success', data.message || `User status changed to ${status} successfully`);
                     setTimeout(() => {
                         window.location.reload();
                     }, 1500);
                 } else {
-                    showAlert('danger', data.message || 'An error occurred while changing the user status.');
+                    showAlert('danger', data.message || 'Failed to change user status');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showAlert('danger', 'An error occurred while changing the user status.');
+                showAlert('danger', 'An error occurred while changing user status');
             });
     }
 
@@ -263,6 +263,55 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Toggle role-specific fields based on selection (for AddUser form)
+    const roleSelect = document.getElementById('role-select');
+    if (roleSelect) {
+        roleSelect.addEventListener('change', toggleRoleFields);
+
+        // Initial call to set fields
+        toggleRoleFields();
+    }
+
+    function toggleRoleFields() {
+        const selectedRole = roleSelect.value;
+        const staffFields = document.querySelector('.staff-fields');
+        const homeownerFields = document.querySelector('.homeowner-fields');
+
+        if (staffFields && homeownerFields) {
+            if (selectedRole === 'Staff') {
+                staffFields.style.display = 'block';
+                homeownerFields.style.display = 'none';
+            } else if (selectedRole === 'Homeowner') {
+                staffFields.style.display = 'none';
+                homeownerFields.style.display = 'block';
+            } else {
+                staffFields.style.display = 'none';
+                homeownerFields.style.display = 'none';
+            }
+        }
+    }
+
+    // File upload handling
+    const profileImageInput = document.getElementById('ProfileImage');
+    const fileNameDisplay = document.getElementById('file-name');
+
+    if (profileImageInput && fileNameDisplay) {
+        profileImageInput.addEventListener('change', function () {
+            const fileName = this.files[0]?.name || 'No file chosen';
+            fileNameDisplay.textContent = fileName;
+        });
+    }
+
+    const propertyDocsInput = document.getElementById('PropertyDocuments');
+    const docsCountDisplay = document.getElementById('property-docs-count');
+
+    if (propertyDocsInput && docsCountDisplay) {
+        propertyDocsInput.addEventListener('change', function () {
+            const fileCount = this.files.length;
+            docsCountDisplay.textContent = fileCount ? `${fileCount} file(s) selected` : 'No files chosen';
+        });
+    }
+
     // Close Alert Messages
     const closeAlertBtns = document.querySelectorAll('.close-alert');
 
@@ -285,11 +334,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }, 5000);
 
-    // Helper Functions
-    function getAntiForgeryToken() {
-        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-    }
-
+    // Helper function to show alerts
     function showAlert(type, message) {
         const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
         const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';

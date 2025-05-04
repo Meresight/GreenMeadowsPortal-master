@@ -95,10 +95,9 @@ namespace GreenMeadowsPortal.Controllers
                         MemberSince = u.MemberSince.ToString("MMM dd, yyyy"),
                         LastLogin = u.LastLoginDate.HasValue ? u.LastLoginDate.Value.ToString("MMM dd, yyyy HH:mm") : "Never",
                         ProfileImageUrl = u.ProfileImageUrl ?? "/images/default-avatar.png",
-                        PropertyType = u.PropertyType ?? "Unknown", // Added to fix CS9035
-                        OwnershipStatus = u.OwnershipStatus ?? "Unknown" // Added to fix CS9035
+                        PropertyType = u.PropertyType ?? "Unknown",
+                        OwnershipStatus = u.OwnershipStatus ?? "Unknown"
                     });
-
                 }
 
                 // Calculate pagination
@@ -108,7 +107,6 @@ namespace GreenMeadowsPortal.Controllers
                 viewModel.PageEndRecord = Math.Min(page * pageSize, viewModel.TotalRecords);
 
                 return View("~/Views/UserManagement/AddUser.cshtml", viewModel);
-
             }
             catch (Exception ex)
             {
@@ -123,11 +121,10 @@ namespace GreenMeadowsPortal.Controllers
                     FirstName = "Error",
                     Role = "Admin",
                     Users = new List<UserViewModel>(),
-                    PendingUsers = new List<PendingUserViewModel>(), // Fix for CS9035
-                    Roles = new List<RoleViewModel>(), // Fix for CS9035
-                    ActivityLogs = new List<ActivityLogViewModel>() // Fix for CS9035
+                    PendingUsers = new List<PendingUserViewModel>(),
+                    Roles = new List<RoleViewModel>(),
+                    ActivityLogs = new List<ActivityLogViewModel>()
                 });
-
             }
         }
 
@@ -144,15 +141,15 @@ namespace GreenMeadowsPortal.Controllers
 
                     // Create a simplified permissions list
                     var permissions = new List<PermissionViewModel>
-            {
-                new PermissionViewModel
-                {
-                    Id = "1",
-                    Name = "View",
-                    Category = "Basic",
-                    IsGranted = true
-                }
-            };
+                    {
+                        new PermissionViewModel
+                        {
+                            Id = "1",
+                            Name = "View",
+                            Category = "Basic",
+                            IsGranted = true
+                        }
+                    };
 
                     roleViewModels.Add(new RoleViewModel
                     {
@@ -202,7 +199,7 @@ namespace GreenMeadowsPortal.Controllers
                 ModelState.Remove("SendCredentials");
                 ModelState.Remove("ProfileImage");
                 ModelState.Remove("PropertyDocuments");
-                ModelState.Remove("ResidentCount"); // Remove validation for this field
+                ModelState.Remove("ResidentCount");
 
                 _logger.LogInformation($"Received form with Role: {model.Role}");
 
@@ -284,10 +281,10 @@ namespace GreenMeadowsPortal.Controllers
                         MoveInDate = model.MoveInDate,
                         EmergencyContactName = model.Role != "Homeowner" ? "N/A" : (model.EmergencyContactName ?? "N/A"),
                         EmergencyContactPhone = model.Role != "Homeowner" ? "N/A" : (model.EmergencyContactPhone ?? "N/A"),
-                        VehicleInfo = model.Role != "Homeowner" ? "N/A" : (model.VehicleInfo ?? "N/A"),
+                        VehicleInfo = model.VehicleInfo ?? string.Empty, // Ensure not null
                         ResidentCount = model.ResidentCount ?? 0,
                         Status = model.Status,
-                        MemberSince = DateTime.Now, 
+                        MemberSince = DateTime.Now,
                         ProfileImageUrl = profileImageUrl ?? "/images/default-avatar.png",
                         ReceiveEmailNotifications = model.ReceiveNotifications,
                         ReceiveSmsNotifications = model.ReceiveSMS,
@@ -316,12 +313,11 @@ namespace GreenMeadowsPortal.Controllers
                         }
 
                         // Log user creation
-                        // Ensure `creatorUser` is not null before accessing its properties
                         var creatorUser = await _userManager.GetUserAsync(User);
                         if (creatorUser == null)
                         {
                             TempData["ErrorMessage"] = "Current user could not be identified.";
-                            return RedirectToAction("Index");
+                            return RedirectToAction("UserManagement", "Dashboard");
                         }
 
                         // Log user creation
@@ -332,6 +328,8 @@ namespace GreenMeadowsPortal.Controllers
                             HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
                         );
 
+                        TempData["SuccessMessage"] = "User created successfully.";
+                        return RedirectToAction("UserManagement", "Dashboard");
                     }
                     else
                     {
@@ -352,29 +350,33 @@ namespace GreenMeadowsPortal.Controllers
                     if (existingUser == null)
                     {
                         TempData["ErrorMessage"] = "User not found.";
-                        return RedirectToAction("Index");
+                        return RedirectToAction("UserManagement", "Dashboard");
                     }
 
                     // Update user properties
                     existingUser.FirstName = model.FirstName;
                     existingUser.LastName = model.LastName;
+                    existingUser.Email = model.Email;
+                    existingUser.UserName = model.Email; // Important: UserName needs to be updated too
+                    existingUser.NormalizedEmail = model.Email.ToUpper(); // Update normalized email
+                    existingUser.NormalizedUserName = model.Email.ToUpper(); // Update normalized username
                     existingUser.PhoneNumber = model.PhoneNumber;
-                    existingUser.Address = model.Address;
-                    existingUser.Unit = model.Unit;
-                    existingUser.PropertyType = model.PropertyType;
-                    existingUser.OwnershipStatus = model.OwnershipStatus;
+                    existingUser.Address = model.Address ?? string.Empty;
+                    existingUser.Unit = model.Unit ?? string.Empty;
+                    existingUser.PropertyType = model.PropertyType ?? string.Empty;
+                    existingUser.OwnershipStatus = model.OwnershipStatus ?? string.Empty;
                     existingUser.Department = model.Department ?? string.Empty;
                     existingUser.Position = model.Position ?? string.Empty;
                     existingUser.EmployeeId = model.EmployeeId ?? string.Empty;
                     existingUser.MoveInDate = model.MoveInDate;
-                    existingUser.EmergencyContactName = model.EmergencyContactName;
-                    existingUser.EmergencyContactPhone = model.EmergencyContactPhone;
-                    existingUser.VehicleInfo = model.VehicleInfo;
-                    existingUser.ResidentCount = model.ResidentCount;
+                    existingUser.EmergencyContactName = model.EmergencyContactName ?? string.Empty;
+                    existingUser.EmergencyContactPhone = model.EmergencyContactPhone ?? string.Empty;
+                    existingUser.VehicleInfo = model.VehicleInfo ?? string.Empty; // Ensure not null
+                    existingUser.ResidentCount = model.ResidentCount ?? 0;
                     existingUser.Status = model.Status;
                     existingUser.ReceiveEmailNotifications = model.ReceiveNotifications;
                     existingUser.ReceiveSmsNotifications = model.ReceiveSMS;
-                    existingUser.Notes = model.Notes;
+                    existingUser.Notes = model.Notes ?? string.Empty;
                     existingUser.DateOfBirth = model.DateOfBirth;
                     existingUser.ForcePasswordChange = model.ForcePasswordChange;
 
@@ -423,12 +425,11 @@ namespace GreenMeadowsPortal.Controllers
                         }
 
                         // Log user update
-                        // Log user update
                         var updaterUser = await _userManager.GetUserAsync(User);
                         if (updaterUser == null)
                         {
                             TempData["ErrorMessage"] = "Current user could not be identified.";
-                            return RedirectToAction("Index");
+                            return RedirectToAction("UserManagement", "Dashboard");
                         }
                         await _userService.LogActivityAsync(
                             updaterUser.Id,
@@ -437,6 +438,8 @@ namespace GreenMeadowsPortal.Controllers
                             HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
                         );
 
+                        TempData["SuccessMessage"] = "User updated successfully.";
+                        return RedirectToAction("UserManagement", "Dashboard");
                     }
                     else
                     {
@@ -445,7 +448,7 @@ namespace GreenMeadowsPortal.Controllers
                             ModelState.AddModelError(string.Empty, error.Description);
                         }
 
-                        TempData["ErrorMessage"] = "Failed to update user.";
+                        TempData["ErrorMessage"] = "Failed to update user: " + string.Join(", ", updateResult.Errors.Select(e => e.Description));
                     }
                 }
 
@@ -483,88 +486,7 @@ namespace GreenMeadowsPortal.Controllers
                 return View("AddUser", model);
             }
         }
-        // The issue arises because there are two methods named `Index` with the same parameter types in the `UserManagementController` class.  
-        // To resolve this, we need to rename one of the methods to avoid the conflict.  
 
-        // Renaming the second `Index` method to `IndexWithDirectQuery` for clarity.  
-
-        [HttpGet]
-        public async Task<IActionResult> IndexWithDirectQuery(int page = 1, int pageSize = 10)
-        {
-            try
-            {
-                var user = await _userManager.GetUserAsync(User);
-                if (user == null) return RedirectToAction("Login", "Account");
-
-                var roles = await _userManager.GetRolesAsync(user);
-
-                // Prepare the view model  
-                var viewModel = new UserManagementViewModel
-                {
-                    FirstName = user.FirstName ?? "Admin",
-                    Role = roles.FirstOrDefault() ?? "Admin",
-                    NotificationCount = 0, // Placeholder  
-                    CurrentUserProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                    Users = new List<UserViewModel>(),
-                    CurrentPage = page,
-                    TotalPages = 1,
-                    PageStartRecord = 0,
-                    PageEndRecord = 0,
-                    TotalRecords = 0,
-                    Roles = new List<RoleViewModel>(),
-                    PendingUsers = new List<PendingUserViewModel>(),
-                    ActivityLogs = new List<ActivityLogViewModel>()
-                };
-
-                // Directly query users here instead of using the service  
-                var users = await _userManager.Users
-                    .OrderBy(u => u.Email)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
-
-                foreach (var u in users)
-                {
-                    var userRoles = await _userManager.GetRolesAsync(u);
-
-                    // Fix for CS9035: Required member 'UserViewModel.PropertyType' must be set in the object initializer or attribute constructor.
-                    // Fix for CS9035: Required member 'UserViewModel.OwnershipStatus' must be set in the object initializer or attribute constructor.
-
-                    viewModel.Users.Add(new UserViewModel
-                    {
-                        Id = u.Id,
-                        FirstName = u.FirstName ?? "",
-                        LastName = u.LastName ?? "",
-                        Email = u.Email ?? "",
-                        PhoneNumber = u.PhoneNumber ?? "",
-                        Address = u.Address ?? "",
-                        Role = userRoles.FirstOrDefault() ?? "User",
-                        Status = u.Status ?? "Active",
-                        MemberSince = u.MemberSince.ToString("MMM dd, yyyy"),
-                        LastLogin = u.LastLoginDate.HasValue ? u.LastLoginDate.Value.ToString("MMM dd, yyyy HH:mm") : "Never",
-                        ProfileImageUrl = u.ProfileImageUrl ?? "/images/default-avatar.png",
-                        PropertyType = u.PropertyType ?? "Unknown", // Added to fix CS9035
-                        OwnershipStatus = u.OwnershipStatus ?? "Unknown" // Added to fix CS9035
-                    });
-                }
-
-                // Calculate pagination  
-                viewModel.TotalRecords = await _userManager.Users.CountAsync();
-                viewModel.TotalPages = (int)Math.Ceiling(viewModel.TotalRecords / (double)pageSize);
-                viewModel.PageStartRecord = viewModel.TotalRecords == 0 ? 0 : ((page - 1) * pageSize) + 1;
-                viewModel.PageEndRecord = Math.Min(page * pageSize, viewModel.TotalRecords);
-
-                return View(viewModel);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading User Management page");
-                TempData["ErrorMessage"] = "An error occurred while loading the page. Please try again.";
-                return RedirectToAction("AdminDashboard", "Dashboard");
-            }
-
-        }
-        
         // GET: /UserManagement/EditUser/5
         [HttpGet]
         public async Task<IActionResult> EditUser(string id)
@@ -576,7 +498,7 @@ namespace GreenMeadowsPortal.Controllers
             if (userToEdit == null)
             {
                 TempData["ErrorMessage"] = "User not found.";
-                return RedirectToAction("Index");
+                return RedirectToAction("UserManagement", "Dashboard");
             }
 
             var roles = await _userManager.GetRolesAsync(user);
@@ -630,7 +552,7 @@ namespace GreenMeadowsPortal.Controllers
                 if (string.IsNullOrEmpty(userId))
                 {
                     TempData["ErrorMessage"] = "User ID is required.";
-                    return RedirectToAction("Index", "Dashboard", new { area = "", controller = "Dashboard", action = "UserManagement" });
+                    return RedirectToAction("UserManagement", "Dashboard");
                 }
 
                 var user = await _userManager.FindByIdAsync(userId);
@@ -638,7 +560,7 @@ namespace GreenMeadowsPortal.Controllers
                 {
                     _logger.LogWarning($"User not found with ID: {userId}");
                     TempData["ErrorMessage"] = "User not found.";
-                    return RedirectToAction("Index", "Dashboard", new { area = "", controller = "Dashboard", action = "UserManagement" });
+                    return RedirectToAction("UserManagement", "Dashboard");
                 }
 
                 // Generate token and reset password
@@ -647,10 +569,17 @@ namespace GreenMeadowsPortal.Controllers
 
                 if (result.Succeeded)
                 {
-                    // Update force password change flag
+                    // Update force password change flag if needed
                     if (forcePasswordChange)
                     {
                         user.ForcePasswordChange = true;
+
+                        // Ensure VehicleInfo is not null
+                        if (user.VehicleInfo == null)
+                        {
+                            user.VehicleInfo = string.Empty;
+                        }
+
                         await _userManager.UpdateAsync(user);
                     }
 
@@ -662,11 +591,10 @@ namespace GreenMeadowsPortal.Controllers
                         HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
                     );
 
-                    // Send email if requested (would be implemented in a real system)
+                    // Send email if requested
                     if (sendEmail)
                     {
                         _logger.LogInformation($"Email notification for password reset would be sent to {user.Email}");
-                        // In a real implementation, you would call an email service here
                         await SendPasswordResetEmail(user, newPassword);
                     }
 
@@ -693,8 +621,10 @@ namespace GreenMeadowsPortal.Controllers
                 return RedirectToAction("UserManagement", "Dashboard");
             }
         }
+
         // POST: /UserManagement/DeleteUser
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
@@ -755,6 +685,7 @@ namespace GreenMeadowsPortal.Controllers
 
         // POST: /UserManagement/ChangeUserStatus
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangeUserStatus(string userId, string status)
         {
             try
@@ -785,6 +716,13 @@ namespace GreenMeadowsPortal.Controllers
                 }
 
                 user.Status = status;
+
+                // Ensure VehicleInfo is not null
+                if (user.VehicleInfo == null)
+                {
+                    user.VehicleInfo = string.Empty;
+                }
+
                 var result = await _userManager.UpdateAsync(user);
 
                 if (result.Succeeded)

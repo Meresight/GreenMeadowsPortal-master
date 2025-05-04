@@ -32,8 +32,8 @@
                     <img src="@(string.IsNullOrEmpty(Model.CurrentUserProfileImageUrl) ? "/images/default-profile.png" : Model.CurrentUserProfileImageUrl)" alt="Admin Avatar">
                 </div>
                 <div class="user-info">
-                    <h4>@Model.CurrentRole</h4>
-                    <p>@Model.CurrentUserName</p>
+                    <h4>@Model.CurrentUserName</h4>
+                    <p>@Model.CurrentRole</p>
                 </div>
             </div>
 
@@ -372,7 +372,7 @@
 
                                 <div class="form-group">
                                     <label asp-for="ResidentCount">Number of Residents</label>
-                                    <input type="number" asp-for="ResidentCount" class="form-control" min="1" />
+                                    <input type="number" asp-for="ResidentCount" class="form-control" min="1" value="1" />
                                     <span asp-validation-for="ResidentCount" class="text-danger"></span>
                                 </div>
                             </div>
@@ -406,7 +406,7 @@
                         </div>
 
                         <div class="form-actions">
-                            <a href="/Admin/UserManagement" class="btn secondary-btn">Cancel</a>
+                            <a href="/Dashboard/UserManagement" class="btn secondary-btn">Cancel</a>
                             <button type="submit" class="btn primary-btn">
                                 <i class="fas fa-save"></i> Save User
                             </button>
@@ -414,77 +414,152 @@
                     </form>
                 </div>
             </main>
+
+            <!-- Footer -->
+            <footer class="main-footer">
+                <div class="footer-content">
+                    <p>&copy; @DateTime.Now.Year Green Meadows Subdivision. All rights reserved.</p>
+                    <div class="footer-links">
+                        <a href="/Help">Help Center</a>
+                        <a href="/Privacy">Privacy Policy</a>
+                        <a href="/Terms">Terms of Service</a>
+                    </div>
+                </div>
+            </footer>
         </div>
     </div>
 
     <!-- JavaScript inclusion -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="~/js/user-management.js"></script>
-    <script src="~/js/admin.js"></script>
     <script>
-        jQuery(function($) {
-            // Toggle password visibility
-            $('.toggle-password').on('click', function() {
-                const passwordInput = $(this).siblings('input');
-                const passwordIcon = $(this).find('i');
+        document.addEventListener('DOMContentLoaded', function() {
+            // User dropdown toggle
+            const userDropdown = document.querySelector('.user-dropdown');
+            if (userDropdown) {
+                userDropdown.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    this.classList.toggle('open');
+                    const dropdownMenu = this.querySelector('.dropdown-menu');
+                    if (dropdownMenu) {
+                        dropdownMenu.classList.toggle('show');
+                    }
+                });
 
-                if (passwordInput.attr('type') === 'password') {
-                    passwordInput.attr('type', 'text');
-                    passwordIcon.removeClass('fa-eye').addClass('fa-eye-slash');
-                } else {
-                    passwordInput.attr('type', 'password');
-                    passwordIcon.removeClass('fa-eye-slash').addClass('fa-eye');
-                }
-            });
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (!userDropdown.contains(event.target)) {
+                        userDropdown.classList.remove('open');
+                        const dropdownMenu = userDropdown.querySelector('.dropdown-menu');
+                        if (dropdownMenu) {
+                            dropdownMenu.classList.remove('show');
+                        }
+                    }
+                });
+            }
+
+            // Toggle password visibility
+            const togglePasswordBtns = document.querySelectorAll('.toggle-password');
+            if (togglePasswordBtns.length > 0) {
+                togglePasswordBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const passwordInput = this.previousElementSibling;
+                        const passwordIcon = this.querySelector('i');
+
+                        if (passwordInput.getAttribute('type') === 'password') {
+                            passwordInput.setAttribute('type', 'text');
+                            passwordIcon.classList.remove('fa-eye');
+                            passwordIcon.classList.add('fa-eye-slash');
+                        } else {
+                            passwordInput.setAttribute('type', 'password');
+                            passwordIcon.classList.remove('fa-eye-slash');
+                            passwordIcon.classList.add('fa-eye');
+                        }
+                    });
+                });
+            }
 
             // File upload handling for profile image
-            $('#ProfileImage').on('change', function() {
-                const fileName = $(this).val().split('\\').pop();
-                if (fileName) {
-                    $('#file-name').text(fileName);
-                } else {
-                    $('#file-name').text('No file chosen');
-                }
-            });
+            const profileImageInput = document.getElementById('ProfileImage');
+            const fileNameDisplay = document.getElementById('file-name');
+
+            if (profileImageInput && fileNameDisplay) {
+                profileImageInput.addEventListener('change', function() {
+                    const fileName = this.files[0] ? this.files[0].name : 'No file chosen';
+                    fileNameDisplay.textContent = fileName;
+                });
+            }
 
             // File upload handling for property documents
-            $('#PropertyDocuments').on('change', function() {
-                const fileCount = $(this)[0].files.length;
-                if (fileCount > 0) {
-                    $('#property-docs-count').text(fileCount + ' file(s) selected');
-                } else {
-                    $('#property-docs-count').text('No files chosen');
-                }
-            });
+            const propertyDocsInput = document.getElementById('PropertyDocuments');
+            const propertyDocsCount = document.getElementById('property-docs-count');
+
+            if (propertyDocsInput && propertyDocsCount) {
+                propertyDocsInput.addEventListener('change', function() {
+                    const fileCount = this.files.length;
+                    if (fileCount > 0) {
+                        propertyDocsCount.textContent = fileCount + ' file(s) selected';
+                    } else {
+                        propertyDocsCount.textContent = 'No files chosen';
+                    }
+                });
+            }
 
             // Show/hide role-specific fields based on selection
+            const roleSelect = document.getElementById('role-select');
+
             function toggleRoleFields() {
-                const selectedRole = $('#role-select').val();
+                const selectedRole = roleSelect.value;
+                const staffFields = document.querySelector('.staff-fields');
+                const homeownerFields = document.querySelector('.homeowner-fields');
 
                 if (selectedRole === 'Staff') {
-                    $('.staff-fields').show();
-                    $('.homeowner-fields').hide();
+                    staffFields.style.display = 'block';
+                    homeownerFields.style.display = 'none';
                 } else if (selectedRole === 'Homeowner') {
-                    $('.staff-fields').hide();
-                    $('.homeowner-fields').show();
+                    staffFields.style.display = 'none';
+                    homeownerFields.style.display = 'block';
                 } else {
-                    $('.staff-fields').hide();
-                    $('.homeowner-fields').hide();
+                    staffFields.style.display = 'none';
+                    homeownerFields.style.display = 'none';
                 }
             }
-                    $(document).ready(function() {
-            // Log form submission
-            $('#user-form, .user-form').on('submit', function() {
-                console.log('Form submitted');
-                console.log('Role selected:', $('#role-select').val());
-                return true;
-            });
-        });
-            // Initial call to set fields
-            toggleRoleFields();
 
-            // Listen for role changes
-            $('#role-select').on('change', toggleRoleFields);
+            // Initial call to set fields
+            if (roleSelect) {
+                toggleRoleFields();
+                roleSelect.addEventListener('change', toggleRoleFields);
+            }
+
+            // Close alert buttons
+            const closeAlertBtns = document.querySelectorAll('.close-alert');
+            if (closeAlertBtns.length > 0) {
+                closeAlertBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const alert = this.closest('.alert');
+                        if (alert) {
+                            alert.style.display = 'none';
+                        }
+                    });
+                });
+            }
+
+            // Mobile sidebar toggle
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                });
+            }
+
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    alert.style.display = 'none';
+                });
+            }, 5000);
         });
     </script>
 </body>
