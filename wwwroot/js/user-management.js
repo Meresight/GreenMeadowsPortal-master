@@ -1,4 +1,4 @@
-﻿// Updated user-management.js
+﻿// Updated user-management.js with fixes for delete, update, and reset password functionality
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('User Management JS loaded');
@@ -81,16 +81,22 @@ document.addEventListener('DOMContentLoaded', function () {
     // Delete User Confirmation
     const deleteUserBtns = document.querySelectorAll('.delete-user-btn');
     const deleteConfirmationModal = document.getElementById('delete-confirmation-modal');
+    const deleteUserIdInput = document.getElementById('delete-user-id');
     const confirmDeleteBtn = document.getElementById('confirm-delete');
-    let userIdToDelete = null;
+    const deleteUserForm = document.getElementById('delete-user-form');
 
-    if (deleteUserBtns.length > 0 && deleteConfirmationModal && confirmDeleteBtn) {
+    if (deleteUserBtns.length > 0 && deleteConfirmationModal) {
         deleteUserBtns.forEach(btn => {
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                userIdToDelete = this.getAttribute('data-user-id');
-                confirmDeleteBtn.setAttribute('data-user-id', userIdToDelete);
+                const userId = this.getAttribute('data-user-id');
+                if (deleteUserIdInput) {
+                    deleteUserIdInput.value = userId;
+                }
+                if (confirmDeleteBtn) {
+                    confirmDeleteBtn.setAttribute('data-user-id', userId);
+                }
                 deleteConfirmationModal.classList.add('show');
                 deleteConfirmationModal.style.display = 'flex';
             });
@@ -98,111 +104,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Handle Delete User confirmation
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', function () {
-            const userId = this.getAttribute('data-user-id');
+    if (confirmDeleteBtn && deleteUserForm) {
+        confirmDeleteBtn.addEventListener('click', function (e) {
+            e.preventDefault();
 
-            // Set the user ID in the hidden field
-            if (document.getElementById('delete-user-id')) {
-                document.getElementById('delete-user-id').value = userId;
-            }
+            // Get the user ID from the hidden field
+            const userId = document.getElementById('delete-user-id').value;
 
             // Show loading indicator
-            const originalText = this.innerHTML;
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
             this.disabled = true;
 
-            // Get the token
-            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-
-            // Create form data
-            const formData = new FormData();
-            formData.append('id', userId);
-            formData.append('__RequestVerificationToken', token);
-
-            // Send the AJAX request
-            fetch('/UserManagement/DeleteUser', {
-                method: 'POST',
-                headers: {
-                    'RequestVerificationToken': token,
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        showAlert('success', data.message || 'User deleted successfully');
-
-                        // Close the modal
-                        deleteConfirmationModal.classList.remove('show');
-                        deleteConfirmationModal.style.display = 'none';
-
-                        // Reload the page immediately
-                        window.location.reload();
-                    } else {
-                        showAlert('danger', data.message || 'Failed to delete user');
-
-                        // Reset button
-                        this.innerHTML = originalText;
-                        this.disabled = false;
-
-                        // Close the modal
-                        deleteConfirmationModal.classList.remove('show');
-                        deleteConfirmationModal.style.display = 'none';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('danger', 'An error occurred while deleting the user: ' + error.message);
-
-                    // Reset button
-                    this.innerHTML = originalText;
-                    this.disabled = false;
-
-                    // Close the modal
-                    deleteConfirmationModal.classList.remove('show');
-                    deleteConfirmationModal.style.display = 'none';
-                });
+            // Submit the form
+            deleteUserForm.submit();
         });
-    }
-
-    // Helper function to show alerts
-    function showAlert(type, message) {
-        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-
-        const alertHtml = `
-        <div class="alert ${alertClass}">
-            <i class="fas ${icon}"></i> ${message}
-            <button class="close-alert"><i class="fas fa-times"></i></button>
-        </div>
-    `;
-
-        // Find the page header to insert the alert after it
-        const pageHeader = document.querySelector('.page-header');
-        if (pageHeader) {
-            pageHeader.insertAdjacentHTML('afterend', alertHtml);
-
-            // Add event listener to the newly created close button
-            const newAlert = pageHeader.nextElementSibling;
-            const newCloseBtn = newAlert.querySelector('.close-alert');
-            if (newCloseBtn) {
-                newCloseBtn.addEventListener('click', function () {
-                    newAlert.style.display = 'none';
-                });
-            }
-
-            // Auto-hide this alert after 5 seconds
-            setTimeout(function () {
-                newAlert.style.display = 'none';
-            }, 5000);
-        }
     }
 
     // Change User Status

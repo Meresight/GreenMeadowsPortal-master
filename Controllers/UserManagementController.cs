@@ -187,8 +187,7 @@ namespace GreenMeadowsPortal.Controllers
         // POST: /UserManagement/SaveUser
         [HttpPost]
         [ValidateAntiForgeryToken]
-
-public async Task<IActionResult> SaveUser(UserFormViewModel model)
+        public async Task<IActionResult> SaveUser(UserFormViewModel model)
         {
             try
             {
@@ -263,83 +262,10 @@ public async Task<IActionResult> SaveUser(UserFormViewModel model)
                 // Get current user for activity logging
                 var loggedInUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
 
-                if (string.IsNullOrEmpty(model.Id))
+                // Check if we're editing an existing user or creating a new one
+                if (!string.IsNullOrEmpty(model.Id))
                 {
-                    // Creating a new user
-                    _logger.LogInformation("Creating new user with email: " + model.Email);
-
-                    var newUser = new ApplicationUser
-                    {
-                        UserName = model.Email,
-                        Email = model.Email,
-                        FirstName = model.FirstName,
-                        LastName = model.LastName,
-                        PhoneNumber = model.PhoneNumber,
-                        Address = model.Address ?? string.Empty,
-                        Unit = model.Unit ?? string.Empty,
-                        PropertyType = model.PropertyType ?? string.Empty,
-                        OwnershipStatus = model.OwnershipStatus ?? string.Empty,
-                        Department = model.Department ?? string.Empty,
-                        Position = model.Position ?? string.Empty,
-                        EmployeeId = model.EmployeeId ?? string.Empty,
-                        MoveInDate = model.MoveInDate,
-                        EmergencyContactName = model.Role != "Homeowner" ? "N/A" : (model.EmergencyContactName ?? "N/A"),
-                        EmergencyContactPhone = model.Role != "Homeowner" ? "N/A" : (model.EmergencyContactPhone ?? "N/A"),
-                        VehicleInfo = model.VehicleInfo ?? string.Empty, // Ensure not null
-                        ResidentCount = model.ResidentCount ?? 0,
-                        Status = model.Status,
-                        MemberSince = DateTime.Now,
-                        ProfileImageUrl = profileImageUrl ?? "/images/default-avatar.png",
-                        ReceiveEmailNotifications = model.ReceiveNotifications,
-                        ReceiveSmsNotifications = model.ReceiveSMS,
-                        Notes = model.Notes ?? string.Empty,
-                        ForcePasswordChange = model.ForcePasswordChange,
-                        DateOfBirth = model.DateOfBirth
-                    };
-
-                    var result = await _userManager.CreateAsync(newUser, model.Password);
-
-                    if (result.Succeeded)
-                    {
-                        // Assign role
-                        await _userManager.AddToRoleAsync(newUser, model.Role);
-
-                        // Process property documents if any
-                        if (model.PropertyDocuments != null && model.PropertyDocuments.Count > 0)
-                        {
-                            await ProcessPropertyDocumentsUpload(newUser.Id, model.PropertyDocuments);
-                        }
-
-                        // Send credentials email if requested
-                        if (model.SendCredentials)
-                        {
-                            await SendAccountCredentialsEmail(newUser, model.Password);
-                        }
-
-                        // Log user creation
-                        await _userService.LogActivityAsync(
-                            loggedInUserId,
-                            "user-created",
-                            $"Created new user: {newUser.Email}",
-                            HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
-                        );
-
-                        TempData["SuccessMessage"] = "User created successfully.";
-                        return RedirectToAction("UserManagement", "Dashboard");
-                    }
-                    else
-                    {
-                        foreach (var error in result.Errors)
-                        {
-                            ModelState.AddModelError(string.Empty, error.Description);
-                        }
-
-                        TempData["ErrorMessage"] = "Failed to create user. See error details below.";
-                    }
-                }
-                else
-                {
-                    // Update existing user
+                    // UPDATE EXISTING USER
                     _logger.LogInformation("Updating existing user with ID: " + model.Id);
 
                     var existingUser = await _userManager.FindByIdAsync(model.Id);
@@ -439,6 +365,80 @@ public async Task<IActionResult> SaveUser(UserFormViewModel model)
                         TempData["ErrorMessage"] = "Failed to update user: " + string.Join(", ", updateResult.Errors.Select(e => e.Description));
                     }
                 }
+                else
+                {
+                    // CREATE NEW USER
+                    _logger.LogInformation("Creating new user with email: " + model.Email);
+
+                    var newUser = new ApplicationUser
+                    {
+                        UserName = model.Email,
+                        Email = model.Email,
+                        FirstName = model.FirstName,
+                        LastName = model.LastName,
+                        PhoneNumber = model.PhoneNumber,
+                        Address = model.Address ?? string.Empty,
+                        Unit = model.Unit ?? string.Empty,
+                        PropertyType = model.PropertyType ?? string.Empty,
+                        OwnershipStatus = model.OwnershipStatus ?? string.Empty,
+                        Department = model.Department ?? string.Empty,
+                        Position = model.Position ?? string.Empty,
+                        EmployeeId = model.EmployeeId ?? string.Empty,
+                        MoveInDate = model.MoveInDate,
+                        EmergencyContactName = model.Role != "Homeowner" ? "N/A" : (model.EmergencyContactName ?? "N/A"),
+                        EmergencyContactPhone = model.Role != "Homeowner" ? "N/A" : (model.EmergencyContactPhone ?? "N/A"),
+                        VehicleInfo = model.VehicleInfo ?? string.Empty, // Ensure not null
+                        ResidentCount = model.ResidentCount ?? 0,
+                        Status = model.Status,
+                        MemberSince = DateTime.Now,
+                        ProfileImageUrl = profileImageUrl ?? "/images/default-avatar.png",
+                        ReceiveEmailNotifications = model.ReceiveNotifications,
+                        ReceiveSmsNotifications = model.ReceiveSMS,
+                        Notes = model.Notes ?? string.Empty,
+                        ForcePasswordChange = model.ForcePasswordChange,
+                        DateOfBirth = model.DateOfBirth
+                    };
+
+                    var result = await _userManager.CreateAsync(newUser, model.Password);
+
+                    if (result.Succeeded)
+                    {
+                        // Assign role
+                        await _userManager.AddToRoleAsync(newUser, model.Role);
+
+                        // Process property documents if any
+                        if (model.PropertyDocuments != null && model.PropertyDocuments.Count > 0)
+                        {
+                            await ProcessPropertyDocumentsUpload(newUser.Id, model.PropertyDocuments);
+                        }
+
+                        // Send credentials email if requested
+                        if (model.SendCredentials)
+                        {
+                            await SendAccountCredentialsEmail(newUser, model.Password);
+                        }
+
+                        // Log user creation
+                        await _userService.LogActivityAsync(
+                            loggedInUserId,
+                            "user-created",
+                            $"Created new user: {newUser.Email}",
+                            HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
+                        );
+
+                        TempData["SuccessMessage"] = "User created successfully.";
+                        return RedirectToAction("UserManagement", "Dashboard");
+                    }
+                    else
+                    {
+                        foreach (var error in result.Errors)
+                        {
+                            ModelState.AddModelError(string.Empty, error.Description);
+                        }
+
+                        TempData["ErrorMessage"] = "Failed to create user. See error details below.";
+                    }
+                }
 
                 // Populate the model with current user information for displaying the page again
                 var user = await _userManager.GetUserAsync(User);
@@ -528,6 +528,7 @@ public async Task<IActionResult> SaveUser(UserFormViewModel model)
         }
 
         // POST: /UserManagement/ResetPassword
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResetPassword(string userId, string newPassword, bool forcePasswordChange, bool sendEmail)
@@ -613,8 +614,6 @@ public async Task<IActionResult> SaveUser(UserFormViewModel model)
         // POST: /UserManagement/DeleteUser
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Route("DeleteUser")] // Add this line to ensure the route is properly registered
-
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
@@ -625,14 +624,16 @@ public async Task<IActionResult> SaveUser(UserFormViewModel model)
                 if (string.IsNullOrEmpty(id))
                 {
                     _logger.LogWarning("Delete user attempt with empty ID");
-                    return Json(new { success = false, message = "Invalid user ID provided." });
+                    TempData["ErrorMessage"] = "Invalid user ID provided.";
+                    return RedirectToAction("UserManagement", "Dashboard");
                 }
 
                 var user = await _userManager.FindByIdAsync(id);
                 if (user == null)
                 {
                     _logger.LogWarning($"User not found with ID: {id}");
-                    return Json(new { success = false, message = "User not found." });
+                    TempData["ErrorMessage"] = "User not found.";
+                    return RedirectToAction("UserManagement", "Dashboard");
                 }
 
                 // Check if this is the last admin
@@ -642,7 +643,8 @@ public async Task<IActionResult> SaveUser(UserFormViewModel model)
                     if (adminUsers.Count <= 1)
                     {
                         _logger.LogWarning("Attempt to delete the last admin user prevented");
-                        return Json(new { success = false, message = "Cannot delete the last admin user." });
+                        TempData["ErrorMessage"] = "Cannot delete the last admin user.";
+                        return RedirectToAction("UserManagement", "Dashboard");
                     }
                 }
 
@@ -659,18 +661,21 @@ public async Task<IActionResult> SaveUser(UserFormViewModel model)
                 if (result.Succeeded)
                 {
                     _logger.LogInformation($"Successfully deleted user {id}");
-                    return Json(new { success = true, message = "User deleted successfully." });
+                    TempData["SuccessMessage"] = "User deleted successfully.";
+                    return RedirectToAction("UserManagement", "Dashboard");
                 }
                 else
                 {
                     _logger.LogError($"Failed to delete user {id}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-                    return Json(new { success = false, message = "Failed to delete user." });
+                    TempData["ErrorMessage"] = "Failed to delete user: " + string.Join(", ", result.Errors.Select(e => e.Description));
+                    return RedirectToAction("UserManagement", "Dashboard");
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error deleting user {id}");
-                return Json(new { success = false, message = "An error occurred: " + ex.Message });
+                TempData["ErrorMessage"] = "An error occurred: " + ex.Message;
+                return RedirectToAction("UserManagement", "Dashboard");
             }
         }
 
