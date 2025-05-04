@@ -1726,3 +1726,21 @@ table {
         justify-content: center;
     }
 }
+.draft-publish-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+    .draft-publish-btn:hover {
+        background-color: #218838;
+    }
+
+    .draft-publish-btn i {
+        margin-right: 4px;
+    }

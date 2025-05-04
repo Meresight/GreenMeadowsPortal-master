@@ -20,17 +20,24 @@ namespace GreenMeadowsPortal.Controllers
         private readonly IWebHostEnvironment _hostEnvironment;
         private readonly AnnouncementService _announcementService;
         private readonly NotificationService _notificationService;
+        private readonly ILogger<AnnouncementController> _logger;
+
+
 
         public AnnouncementController(
             UserManager<ApplicationUser> userManager,
             IWebHostEnvironment hostEnvironment,
             AnnouncementService announcementService,
-            NotificationService notificationService)
+            NotificationService notificationService,
+                ILogger<AnnouncementController> logger)
+
         {
             _userManager = userManager;
             _hostEnvironment = hostEnvironment;
             _announcementService = announcementService;
             _notificationService = notificationService;
+            _logger = logger;
+
         }
 
         // GET: /Announcement/
@@ -121,6 +128,7 @@ namespace GreenMeadowsPortal.Controllers
         }
 
         // POST: /Announcement/Create
+        // POST: /Announcement/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -153,7 +161,19 @@ namespace GreenMeadowsPortal.Controllers
                 // Process image if uploaded
                 if (model.Image != null && model.Image.Length > 0)
                 {
-                    imageUrl = await SaveFileAsync(model.Image, "images/announcements");
+                    // Log information about the image
+                    _logger.LogInformation($"Image upload: Name={model.Image.FileName}, Size={model.Image.Length}, ContentType={model.Image.ContentType}");
+
+                    try
+                    {
+                        imageUrl = await SaveFileAsync(model.Image, "images/announcements");
+                        _logger.LogInformation($"Image saved successfully at: {imageUrl}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Error saving image: {ex.Message}");
+                        ModelState.AddModelError("Image", $"Error saving image: {ex.Message}");
+                    }
                 }
 
                 var announcement = new AdminAnnouncement
@@ -412,84 +432,138 @@ namespace GreenMeadowsPortal.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Publish(int id)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return RedirectToAction("Login", "Account");
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var isAdmin = roles.Contains("Admin");
-            var isStaff = roles.Contains("Staff");
-
-            var announcement = await _announcementService.GetAnnouncementByIdAsync(id);
-            if (announcement == null)
+            try
             {
-                return NotFound();
+                _logger.LogInformation($"Publish method called for announcement ID: {id}");
+
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    _logger.LogWarning("Publish failed: User not authenticated");
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var roles = await _userManager.GetRolesAsync(user);
+                var isAdmin = roles.Contains("Admin");
+                var isStaff = roles.Contains("Staff");
+                _logger.LogInformation($"User roles: Admin={isAdmin}, Staff={isStaff}");
+
+                var announcement = await _announcementService.GetAnnouncementByIdAsync(id);
+                if (announcement == null)
+                {
+                    _logger.LogWarning($"Publish failed: Announcement with ID {id} not found");
+                    return NotFound();
+                }
+                _logger.LogInformation($"Found announcement: ID={id}, Title={announcement.Title}, CurrentStatus={announcement.Status}");
+
+                // Check if user has permission to publish
+                if (!isAdmin && !(isStaff && announcement.AuthorId == user.Id))
+                {
+                    _logger.LogWarning($"Publish failed: User {user.Id} does not have permission to publish announcement {id}");
+                    return Forbid();
+                }
+
+                // Update announcement status to Published
+                announcement.Status = AnnouncementStatus.Published;
+
+                // If publish date is in the future, set it to now
+                if (announcement.PublishDate > DateTime.Now)
+                {
+                    _logger.LogInformation($"Setting future publish date to current time. Old: {announcement.PublishDate}, New: {DateTime.Now}");
+                    announcement.PublishDate = DateTime.Now;
+                }
+
+                var adminAnnouncement = new AdminAnnouncement
+                {
+                    Id = announcement.Id,
+                    Title = announcement.Title,
+                    Content = announcement.Content,
+                    CreatedDate = announcement.CreatedDate,
+                    PublishDate = announcement.PublishDate,
+                    ExpirationDate = announcement.ExpirationDate,
+                    AuthorId = announcement.AuthorId,
+                    Priority = announcement.Priority,
+                    Status = announcement.Status,
+                    TargetAudience = announcement.TargetAudience,
+                    AttachmentUrl = announcement.AttachmentUrl,
+                    ImageUrl = announcement.ImageUrl
+                };
+
+                try
+                {
+                    await _announcementService.UpdateAnnouncementAsync(adminAnnouncement);
+                    _logger.LogInformation($"Successfully updated announcement {id} status to Published");
+
+                    // Send notifications
+                    await SendAnnouncementNotificationsAsync(adminAnnouncement);
+
+                    TempData["SuccessMessage"] = "Announcement published successfully.";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error publishing announcement {id}: {ex.Message}");
+                    TempData["ErrorMessage"] = "Failed to publish announcement: " + ex.Message;
+                    return RedirectToAction(nameof(Index));
+                }
             }
-
-            // Check if user has permission to publish
-            if (!isAdmin && !(isStaff && announcement.AuthorId == user.Id))
+            catch (Exception ex)
             {
-                return Forbid();
+                _logger.LogError($"Unexpected error in Publish method: {ex.Message}");
+                TempData["ErrorMessage"] = "An unexpected error occurred.";
+                return RedirectToAction(nameof(Index));
             }
-
-            // Update announcement status to Published
-            announcement.Status = AnnouncementStatus.Published;
-
-            // If publish date is in the future, set it to now
-            if (announcement.PublishDate > DateTime.Now)
-            {
-                announcement.PublishDate = DateTime.Now;
-            }
-
-            var adminAnnouncement = new AdminAnnouncement
-            {
-                Id = announcement.Id,
-                Title = announcement.Title,
-                Content = announcement.Content,
-                CreatedDate = announcement.CreatedDate,
-                PublishDate = announcement.PublishDate,
-                ExpirationDate = announcement.ExpirationDate,
-                AuthorId = announcement.AuthorId,
-                Priority = announcement.Priority,
-                Status = announcement.Status,
-                TargetAudience = announcement.TargetAudience,
-                AttachmentUrl = announcement.AttachmentUrl,
-                ImageUrl = announcement.ImageUrl
-            };
-
-            await _announcementService.UpdateAnnouncementAsync(adminAnnouncement);
-
-            // Send notifications
-            await SendAnnouncementNotificationsAsync(adminAnnouncement);
-
-            TempData["SuccessMessage"] = "Announcement published successfully.";
-            return RedirectToAction(nameof(Index));
         }
-
         // Private methods
+        // Updated SaveFileAsync method with better error handling
         private async Task<string> SaveFileAsync(IFormFile file, string subfolder)
         {
-            string uploadsFolder = Path.Combine(_hostEnvironment.WebRootPath, subfolder);
-
-            // Create directory if it doesn't exist
-            if (!Directory.Exists(uploadsFolder))
+            try
             {
-                Directory.CreateDirectory(uploadsFolder);
+                // Validate file is not null
+                if (file == null || file.Length == 0)
+                    return string.Empty;
+
+                // Get and create uploads folder if it doesn't exist
+                string uploadsFolder = Path.Combine(_hostEnvironment.WebRootPath, subfolder);
+
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Error creating directory: {ex.Message}");
+                        // Fall back to a default directory that should exist
+                        uploadsFolder = Path.Combine(_hostEnvironment.WebRootPath, "images");
+                        if (!Directory.Exists(uploadsFolder))
+                            Directory.CreateDirectory(uploadsFolder);
+                    }
+                }
+
+                // Clean the filename to prevent any path traversal attacks
+                string fileName = Path.GetFileName(file.FileName);
+
+                // Generate unique filename
+                string uniqueFileName = Guid.NewGuid().ToString() + "_" + fileName;
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                // Save file
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+
+                return $"/{subfolder}/{uniqueFileName}";
             }
-
-            // Generate unique filename
-            string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            // Save file
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            catch (Exception ex)
             {
-                await file.CopyToAsync(fileStream);
+                _logger.LogError($"Error saving file: {ex.Message}");
+                return string.Empty;
             }
-
-            return $"/{subfolder}/{uniqueFileName}";
         }
-
         private void DeleteFile(string fileUrl)
         {
             if (string.IsNullOrEmpty(fileUrl))
@@ -527,19 +601,17 @@ namespace GreenMeadowsPortal.Controllers
                 // Get users in specific role(s)
                 var userIds = new List<string>();
 
-                if (announcement.TargetAudience.Contains("Homeowners"))
+                if (announcement.TargetAudience == "Homeowners" || announcement.TargetAudience.Contains("Homeowners"))
                 {
                     var homeowners = await _userManager.GetUsersInRoleAsync("Homeowner");
                     userIds.AddRange(homeowners.Select(u => u.Id));
                 }
-
-                if (announcement.TargetAudience.Contains("Staff"))
+                else if (announcement.TargetAudience == "Staff" || announcement.TargetAudience.Contains("Staff"))
                 {
                     var staff = await _userManager.GetUsersInRoleAsync("Staff");
                     userIds.AddRange(staff.Select(u => u.Id));
                 }
-
-                if (announcement.TargetAudience.Contains("Administrators"))
+                else if (announcement.TargetAudience == "Administrators" || announcement.TargetAudience.Contains("Administrators"))
                 {
                     var admins = await _userManager.GetUsersInRoleAsync("Admin");
                     userIds.AddRange(admins.Select(u => u.Id));

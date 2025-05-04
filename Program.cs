@@ -30,7 +30,10 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AnnouncementService>();
 builder.Services.AddScoped<NotificationService>();
-
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = int.MaxValue; // Allow large file uploads
+});
 // Add API controllers with JSON formatting
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

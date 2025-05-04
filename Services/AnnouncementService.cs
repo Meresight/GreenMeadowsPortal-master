@@ -154,7 +154,50 @@ namespace GreenMeadowsPortal.Services
                 };
             }
         }
+        // Add this method to your AnnouncementService.cs
+        public async Task<int> GetTotalCountAsync(string filter = "all", string search = "")
+        {
+            try
+            {
+                var query = _context.Announcements.AsQueryable();
 
+                // Apply filter
+                if (filter != "all")
+                {
+                    if (filter == "urgent")
+                        query = query.Where(a => a.Priority == AnnouncementPriority.Urgent);
+                    else if (filter == "important")
+                        query = query.Where(a => a.Priority == AnnouncementPriority.Important);
+                    else if (filter == "general")
+                        query = query.Where(a => a.Priority == AnnouncementPriority.General);
+                    else if (filter == "drafts")
+                        query = query.Where(a => a.Status == AnnouncementStatus.Draft);
+                    else if (filter == "published")
+                        query = query.Where(a => a.Status == AnnouncementStatus.Published);
+                    else if (filter == "archived")
+                        query = query.Where(a => a.Status == AnnouncementStatus.Archived);
+                    else if (filter == "scheduled")
+                        query = query.Where(a => a.Status == AnnouncementStatus.Published && a.PublishDate > DateTime.Now);
+                }
+
+                // Apply search
+                if (!string.IsNullOrEmpty(search))
+                {
+                    query = query.Where(a =>
+                        a.Title.Contains(search) ||
+                        a.Content.Contains(search) ||
+                        a.Author.FirstName.Contains(search) ||
+                        a.Author.LastName.Contains(search));
+                }
+
+                return await query.CountAsync();
+            }
+            catch (Exception)
+            {
+                // Return mock count to match our mock data
+                return 2;
+            }
+        }
         // Get announcements for staff (published or their own drafts)
         public async Task<List<AnnouncementDetailsViewModel>> GetAnnouncementsForStaffAsync(
     string staffId,
@@ -264,11 +307,12 @@ namespace GreenMeadowsPortal.Services
         }
 
         // Get announcements for homeowners (published only)
+        // In AnnouncementService.cs
         public async Task<List<AnnouncementDetailsViewModel>> GetAnnouncementsForHomeownersAsync(
-     string filter = "all",
-     string search = "",
-     int page = 1,
-     int pageSize = 10)
+            string filter = "all",
+            string search = "",
+            int page = 1,
+            int pageSize = 10)
         {
             try
             {
@@ -279,7 +323,7 @@ namespace GreenMeadowsPortal.Services
                         a.Status == AnnouncementStatus.Published &&
                         a.PublishDate <= DateTime.Now &&
                         (a.ExpirationDate == null || a.ExpirationDate > DateTime.Now) &&
-                        (a.TargetAudience == "All" || a.TargetAudience == "Homeowners")) // Add this filter
+                        (a.TargetAudience == "All" || a.TargetAudience == "Homeowners")) // This line filters by target audience
                     .AsQueryable();
 
                 // Apply filter
@@ -336,7 +380,7 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Log error and return mock data in case of an error
+                // Log error and return filtered mock data for homeowners only
                 Console.WriteLine($"Database error: {ex.Message}. Returning mock data instead.");
 
                 // Return mock data filtered to show only items intended for all users or homeowners
@@ -363,50 +407,6 @@ namespace GreenMeadowsPortal.Services
                 ReadReceipts = new List<AnnouncementReadReceiptViewModel>()
             }
         };
-            }
-        }
-        // Get total count for pagination
-        public async Task<int> GetTotalCountAsync(string filter = "all", string search = "")
-        {
-            try
-            {
-                var query = _context.Announcements.AsQueryable();
-
-                // Apply filter
-                if (filter != "all")
-                {
-                    if (filter == "urgent")
-                        query = query.Where(a => a.Priority == AnnouncementPriority.Urgent);
-                    else if (filter == "important")
-                        query = query.Where(a => a.Priority == AnnouncementPriority.Important);
-                    else if (filter == "general")
-                        query = query.Where(a => a.Priority == AnnouncementPriority.General);
-                    else if (filter == "drafts")
-                        query = query.Where(a => a.Status == AnnouncementStatus.Draft);
-                    else if (filter == "published")
-                        query = query.Where(a => a.Status == AnnouncementStatus.Published);
-                    else if (filter == "archived")
-                        query = query.Where(a => a.Status == AnnouncementStatus.Archived);
-                    else if (filter == "scheduled")
-                        query = query.Where(a => a.Status == AnnouncementStatus.Published && a.PublishDate > DateTime.Now);
-                }
-
-                // Apply search
-                if (!string.IsNullOrEmpty(search))
-                {
-                    query = query.Where(a =>
-                        a.Title.Contains(search) ||
-                        a.Content.Contains(search) ||
-                        a.Author.FirstName.Contains(search) ||
-                        a.Author.LastName.Contains(search));
-                }
-
-                return await query.CountAsync();
-            }
-            catch (Exception)
-            {
-                // Return mock count to match our mock data
-                return 2;
             }
         }
 
