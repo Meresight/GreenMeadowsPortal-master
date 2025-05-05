@@ -383,20 +383,22 @@ namespace GreenMeadowsPortal.Services
 
                 foreach (var contact in contacts)
                 {
-                    var roles = await _userManager.GetRolesAsync(contact.User);
+                    var roles = contact.User != null
+                        ? await _userManager.GetRolesAsync(contact.User)
+                        : new List<string>();
 
                     communityContactsList.Add(new CommunityContactViewModel
                     {
                         UserId = contact.UserId,
                         FullName = $"{contact.User.FirstName} {contact.User.LastName}",
-                        Email = contact.ShowEmail ? contact.User.Email : string.Empty,
-                        PhoneNumber = contact.ShowPhoneNumber ? contact.User.PhoneNumber : string.Empty,
-                        Address = contact.ShowAddress ? contact.User.Address : string.Empty,
-                        Unit = contact.ShowAddress ? contact.User.Unit : string.Empty,
+                        Email = contact.ShowEmail && contact.User?.Email != null ? contact.User.Email : string.Empty,
+                        PhoneNumber = contact.ShowPhoneNumber && contact.User?.PhoneNumber != null ? contact.User.PhoneNumber : string.Empty,
+                        Address = contact.ShowAddress && contact.User?.Address != null ? contact.User.Address : string.Empty,
+                        Unit = contact.ShowAddress && contact.User?.Unit != null ? contact.User.Unit : string.Empty,
                         Role = roles.FirstOrDefault() ?? "Homeowner",
                         Department = string.Empty,
                         Bio = contact.Bio,
-                        ProfileImageUrl = contact.User.ProfileImageUrl ?? "/images/default-avatar.png",
+                        ProfileImageUrl = contact.User?.ProfileImageUrl ?? "/images/default-avatar.png",
                         ShowEmail = contact.ShowEmail,
                         ShowPhoneNumber = contact.ShowPhoneNumber,
                         ShowAddress = contact.ShowAddress
@@ -481,7 +483,8 @@ namespace GreenMeadowsPortal.Services
         }
 
         // Get a specific message by ID
-        public async Task<ContactMessage> GetMessageByIdAsync(int id)
+        // Get a specific message by ID
+        public async Task<ContactMessage?> GetMessageByIdAsync(int id)
         {
             try
             {
@@ -496,6 +499,7 @@ namespace GreenMeadowsPortal.Services
                 return null;
             }
         }
+
 
         // Mark a message as read
         public async Task<bool> MarkMessageAsReadAsync(int id)

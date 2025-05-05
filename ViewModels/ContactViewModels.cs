@@ -146,6 +146,7 @@ namespace GreenMeadowsPortal.ViewModels
     }
 
     // View model for viewing a message
+    // Let's complete the ViewMessageViewModel class that was cut off
     public class ViewMessageViewModel
     {
         // User information for displaying in the layout
@@ -173,3 +174,95 @@ namespace GreenMeadowsPortal.ViewModels
         public string RecipientId { get; set; } = string.Empty;
         public string RecipientName { get; set; } = string.Empty;
         public string RecipientEmail { get; set; } = string.Empty;
+        public string RecipientRole { get; set; } = string.Empty;
+        public string RecipientImageUrl { get; set; } = string.Empty;
+    }
+
+    // Additional ViewModel for Contact Management by Admin
+    public class ManageContactsViewModel
+    {
+        // User information for displaying in the layout
+        public ApplicationUser CurrentUser { get; set; } = new ApplicationUser();
+        public string FirstName { get; set; } = string.Empty;
+        public string ProfileImageUrl { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public int NotificationCount { get; set; }
+
+        // Contact data for management
+        public List<ContactCategory> ContactCategories { get; set; } = new List<ContactCategory>();
+        public List<DepartmentContactViewModel> DepartmentContacts { get; set; } = new List<DepartmentContactViewModel>();
+        public List<EmergencyContactViewModel> EmergencyContacts { get; set; } = new List<EmergencyContactViewModel>();
+        public List<VendorContactViewModel> VendorContacts { get; set; } = new List<VendorContactViewModel>();
+    }
+
+    // ViewModel for adding a contact category
+    public class AddContactCategoryViewModel
+    {
+        [Required(ErrorMessage = "Category name is required.")]
+        [StringLength(50, ErrorMessage = "Category name cannot exceed 50 characters.")]
+        [Display(Name = "Category Name")]
+        public string CategoryName { get; set; } = string.Empty;
+
+        [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters.")]
+        public string Description { get; set; } = string.Empty;
+
+        [Display(Name = "Public Category")]
+        public bool IsPublic { get; set; } = true;
+    }
+
+    // ViewModel for adding an emergency contact
+    public class AddEmergencyContactViewModel
+    {
+        [Required(ErrorMessage = "Name is required.")]
+        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters.")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Phone number is required.")]
+        [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters.")]
+        [Display(Name = "Phone Number")]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Invalid email address.")]
+        [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters.")]
+        public string Email { get; set; } = string.Empty;
+
+        [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters.")]
+        public string Description { get; set; } = string.Empty;
+
+        [Range(1, 10, ErrorMessage = "Priority must be between 1 and 10.")]
+        public int Priority { get; set; } = 5;
+    }
+
+    // ViewModel for adding a vendor contact
+    public class AddVendorContactViewModel
+    {
+        [Required(ErrorMessage = "Company name is required.")]
+        [StringLength(100, ErrorMessage = "Company name cannot exceed 100 characters.")]
+        [Display(Name = "Company Name")]
+        public string CompanyName { get; set; } = string.Empty;
+
+        [StringLength(100, ErrorMessage = "Contact person name cannot exceed 100 characters.")]
+        [Display(Name = "Contact Person")]
+        public string ContactPerson { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Phone number is required.")]
+        [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters.")]
+        [Display(Name = "Phone Number")]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Invalid email address.")]
+        [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Service type is required.")]
+        [StringLength(100, ErrorMessage = "Service type cannot exceed 100 characters.")]
+        public string Service { get; set; } = string.Empty;
+
+        [Url(ErrorMessage = "Invalid website URL.")]
+        [StringLength(200, ErrorMessage = "Website URL cannot exceed 200 characters.")]
+        public string Website { get; set; } = string.Empty;
+
+        [Display(Name = "Preferred Vendor")]
+        public bool IsPreferred { get; set; } = false;
+    }
+}

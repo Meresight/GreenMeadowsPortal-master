@@ -28,7 +28,7 @@ namespace GreenMeadowsPortal.Controllers
             _contactService = contactService;
         }
 
-        // GET: /Contact
+        // GET: /Contact - Main contact directory
         public async Task<IActionResult> Index()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -81,7 +81,7 @@ namespace GreenMeadowsPortal.Controllers
             return View(viewModel);
         }
 
-        // GET: /Contact/Message/{id}
+        // GET: /Contact/Message/{id} - Send message to a contact
         public async Task<IActionResult> Message(string id)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -106,7 +106,7 @@ namespace GreenMeadowsPortal.Controllers
                 // Contact details
                 ContactId = contactUser.Id,
                 ContactName = $"{contactUser.FirstName} {contactUser.LastName}",
-                ContactEmail = contactUser.Email,
+                ContactEmail = contactUser.Email ?? string.Empty,
                 ContactRole = await _contactService.GetUserRoleAsync(contactUser),
                 ContactDepartment = contactUser.Department ?? "General",
                 ContactImageUrl = contactUser.ProfileImageUrl ?? "/images/default-avatar.png"
@@ -115,7 +115,7 @@ namespace GreenMeadowsPortal.Controllers
             return View(messageModel);
         }
 
-        // POST: /Contact/SendMessage
+        // POST: /Contact/SendMessage - Process sending a message
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendMessage(ContactMessageViewModel model)
@@ -163,7 +163,7 @@ namespace GreenMeadowsPortal.Controllers
             }
         }
 
-        // GET: /Contact/Inbox
+        // GET: /Contact/Inbox - View user's inbox
         public async Task<IActionResult> Inbox()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -185,7 +185,7 @@ namespace GreenMeadowsPortal.Controllers
             return View(inboxModel);
         }
 
-        // GET: /Contact/ViewMessage/{id}
+        // GET: /Contact/ViewMessage/{id} - View a specific message
         public async Task<IActionResult> ViewMessage(int id)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -244,7 +244,48 @@ namespace GreenMeadowsPortal.Controllers
             return View(viewMessageModel);
         }
 
-        // POST: /Contact/DeleteMessage/{id}
+        // POST: /Contact/MarkAsRead/{id} - Mark a message as read
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkAsRead(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction("Login", "Account");
+
+            var message = await _contactService.GetMessageByIdAsync(id);
+            if (message == null)
+                return NotFound();
+
+            // Check if user is the recipient
+            if (message.RecipientId != user.Id)
+                return Forbid();
+
+            await _contactService.MarkMessageAsReadAsync(id);
+            return RedirectToAction(nameof(ViewMessage), new { id });
+        }
+
+        // POST: /Contact/MarkAllAsRead - Mark all messages as read
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkAllAsRead()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction("Login", "Account");
+
+            // Get all unread messages for the user
+            var messages = await _contactService.GetUserMessagesAsync(user.Id);
+            foreach (var message in messages.Where(m => !m.IsRead && !m.IsFromCurrentUser))
+            {
+                await _contactService.MarkMessageAsReadAsync(message.MessageId);
+            }
+
+            TempData["SuccessMessage"] = "All messages marked as read.";
+            return RedirectToAction(nameof(Inbox));
+        }
+
+        // POST: /Contact/DeleteMessage/{id} - Delete a message
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMessage(int id)
@@ -276,7 +317,9 @@ namespace GreenMeadowsPortal.Controllers
             return RedirectToAction("Inbox");
         }
 
-        // Admin only: GET: /Contact/Manage
+        // Admin only methods for managing contacts
+
+        // GET: /Contact/Manage - Admin contact management
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Manage()
         {
@@ -304,7 +347,7 @@ namespace GreenMeadowsPortal.Controllers
             return View(manageModel);
         }
 
-        // Admin only: POST: /Contact/AddCategory
+        // POST: /Contact/AddCategory - Add a new contact category
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -334,7 +377,7 @@ namespace GreenMeadowsPortal.Controllers
             return RedirectToAction("Manage");
         }
 
-        // Admin only: POST: /Contact/AddEmergencyContact
+        // POST: /Contact/AddEmergencyContact - Add a new emergency contact
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -366,7 +409,7 @@ namespace GreenMeadowsPortal.Controllers
             return RedirectToAction("Manage");
         }
 
-        // Admin only: POST: /Contact/AddVendorContact
+        // POST: /Contact/AddVendorContact - Add a new vendor contact
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -400,7 +443,7 @@ namespace GreenMeadowsPortal.Controllers
             return RedirectToAction("Manage");
         }
 
-        // Admin only: POST: /Contact/DeleteContact
+        // POST: /Contact/DeleteContact - Delete a contact
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
