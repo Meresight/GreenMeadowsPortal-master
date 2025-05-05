@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace GreenMeadowsPortal.Views.Notification
+namespace GreenMeadowsPortal.Views.Contact
 {
-    public class InboxModel : PageModel
+    public class ManageModel : PageModel
     {
         public void OnGet()
         {
