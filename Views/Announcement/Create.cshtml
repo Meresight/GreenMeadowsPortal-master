@@ -7,7 +7,6 @@
     ViewData["Title"] = "Create Announcement - Green Meadows Portal";
     Layout = null;
 }
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,12 +17,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/admin.css">
     <link rel="stylesheet" href="~/css/announcement-form.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.4.2/tinymce.min.js" referrerpolicy="no-referrer"></script>
 </head>
 <body>
+
     <div class="wrapper">
-        <!-- Sidebar Navigation -->
+        <!-- Sidebar Navigation - Consistent with dashboard -->
         <nav id="sidebar" class="sidebar">
             <div class="sidebar-header">
                 <h3>Green Meadows</h3>
@@ -44,14 +45,24 @@
                 @if (Model.Role == "Admin")
                 {
                     <li><a asp-controller="Dashboard" asp-action="AdminDashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><a asp-controller="Dashboard" asp-action="UserManagement"><i class="fas fa-users"></i> User Management</a></li>
                 }
-                else
+                else if (Model.Role == "Staff")
                 {
                     <li><a asp-controller="Dashboard" asp-action="StaffDashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 }
+                else
+                {
+                    <li><a asp-controller="Dashboard" asp-action="HomeownerDashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+                }
 
                 <li class="active"><a asp-controller="Announcement" asp-action="Index"><i class="fas fa-bullhorn"></i> Announcements</a></li>
-                <li><a asp-controller="Dashboard" asp-action="Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a></li>
+                
+                @if (Model.Role != "Staff")
+                {
+                    <li><a asp-controller="Dashboard" asp-action="Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a></li>
+                }
+                
                 <li><a href="/Facilities"><i class="fas fa-swimming-pool"></i> Facilities</a></li>
                 <li><a href="/ServiceRequests"><i class="fas fa-tools"></i> Service Requests</a></li>
                 <li><a href="/Documents"><i class="fas fa-file-alt"></i> Documents</a></li>
@@ -70,7 +81,7 @@
 
         <!-- Main Content -->
         <div class="content-area">
-            <!-- Top Navigation -->
+            <!-- Top Navigation - Consistent with dashboard -->
             <header class="top-navbar">
                 <button id="sidebar-toggle" class="sidebar-toggle">
                     <i class="fas fa-bars"></i>
@@ -118,8 +129,8 @@
                     </nav>
                 </div>
 
-                <!-- Form Container -->
-                <div class="form-container">
+                <!-- Form Container - Similar card style as in dashboard -->
+                <div class="content-section">
                     <form asp-action="Create" method="post" enctype="multipart/form-data">
                         @Html.AntiForgeryToken()
 
@@ -235,41 +246,9 @@
                             </div>
                         </div>
 
-                        <div class="form-section notification-options">
-                            <h2 class="section-title">Notification Options</h2>
-
-                            <div class="form-group">
-                                <p class="notification-info">
-                                    When this announcement is published:
-                                </p>
-                                <div class="checkbox-list">
-                                    <label class="checkbox-container">
-                                        <input type="checkbox" name="NotifyViaPortal" checked disabled />
-                                        <span class="checkmark"></span>
-                                        Send portal notification (always enabled)
-                                    </label>
-
-                                    <label class="checkbox-container">
-                                        <input type="checkbox" name="NotifyViaEmail" />
-                                        <span class="checkmark"></span>
-                                        Send email notification to users who have opted in
-                                    </label>
-
-                                    @if (Model.Role == "Admin")
-                                    {
-                                        <label class="checkbox-container">
-                                            <input type="checkbox" name="NotifyViaSMS" />
-                                            <span class="checkmark"></span>
-                                            Send SMS notification to users who have opted in
-                                        </label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="form-actions">
                             <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn primary-btn">
                                 <i class="fas fa-paper-plane"></i> Create Announcement
                             </button>
                         </div>
@@ -374,4 +353,3 @@
     </script>
 </body>
 </html>
-```

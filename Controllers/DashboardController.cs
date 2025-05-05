@@ -209,26 +209,29 @@ namespace GreenMeadowsPortal.Controllers
             if (user == null) return NotFound("User not found");
 
             var roles = await _userManager.GetRolesAsync(user);
+
+            // Fetch the total number of users from the database
+            var totalUsers = await _userManager.Users.CountAsync();
+
             var model = new AdminDashboardViewModel
             {
                 AdminUser = user,
                 FirstName = user.FirstName ?? "Admin",
                 Role = roles.FirstOrDefault() ?? "Admin",
-                TotalUsers = 150,
+                TotalUsers = totalUsers, // Use the actual count from the database
                 ActiveReservations = 20,
                 ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
                 PendingRequests = 8,
                 OutstandingDues = 24500.00M,
-                UpcomingEvents = 3
+                UpcomingEvents = 3,
+                NotificationCount = user != null
+                    ? await _notificationService.GetUnreadCountAsync(user.Id)
+                    : 0
             };
-
-            // Add notification count - null check to avoid dereference of possibly null reference
-            model.NotificationCount = user != null
-                ? await _notificationService.GetUnreadCountAsync(user.Id)
-                : 0;
 
             return View(model);
         }
+
 
         // ✅ Staff Dashboard
         [Authorize(Roles = "Staff")]
