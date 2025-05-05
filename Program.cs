@@ -30,6 +30,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AnnouncementService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<ContactService>();
 builder.Services.Configure<IISServerOptions>(options =>
 {
     options.MaxRequestBodySize = int.MaxValue; // Allow large file uploads

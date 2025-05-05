@@ -18,6 +18,14 @@ namespace GreenMeadowsPortal.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
 
+        // Contact Directory Models
+        public DbSet<ContactCategory> ContactCategories { get; set; }
+        public DbSet<DepartmentContact> DepartmentContacts { get; set; }
+        public DbSet<EmergencyContact> EmergencyContacts { get; set; }
+        public DbSet<VendorContact> VendorContacts { get; set; }
+        public DbSet<CommunityContact> CommunityContacts { get; set; }
+        public DbSet<ContactMessage> ContactMessages { get; set; }
+
         // Don't need this line anymore since IdentityDbContext already includes Users
         // public DbSet<User> Users { get; set; }
 
@@ -28,6 +36,12 @@ namespace GreenMeadowsPortal.Data
             // For example, change table names:
             // builder.Entity<ApplicationUser>().ToTable("AppUsers");
             // builder.Entity<IdentityRole>().ToTable("AppRoles");
+
+            // Contact Message Soft Delete Behavior
+            builder.Entity<ContactMessage>()
+                .HasQueryFilter(m =>
+                    (!m.DeletedBySender && !m.DeletedByRecipient) ||
+                    (m.DeletedBySender != m.DeletedByRecipient));
         }
     }
 }
