@@ -9,9 +9,9 @@
 
 .announcement-card {
     background-color: var(--background-white);
-    border-radius: var(--border-radius-md);
+    border-radius: 8px;
     border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
@@ -77,28 +77,36 @@
 }
 
 .announcement-content {
-    padding: var(--spacing-md);
+    padding: 1.25rem;
     flex: 1;
     display: flex;
     flex-direction: column;
 }
-
 .announcement-card h3 {
-    margin: 0 0 var(--spacing-sm) 0;
-    font-size: 1.1rem;
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-dark);
+    line-height: 1.4;
 }
 
 .announcement-card p {
-    margin: 0 0 var(--spacing-md) 0;
-    font-size: 0.875rem;
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    line-height: 1.6;
     color: var(--text-medium);
     flex: 1;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+    /* Remove these properties that might be hiding content */
+    overflow: visible; /* Changed from hidden */
+    display: block; /* Changed from -webkit-box */
+    /* Remove line clamp that might be cutting off content */
+    /* -webkit-line-clamp: 4; */
+    /* -webkit-box-orient: vertical; */
+}
+.announcement-content p {
+    white-space: normal;
+    word-break: break-word;
+    max-height: none; /* Allow content to expand */
 }
 
 .announcement-footer {
@@ -382,9 +390,11 @@
         }
 
     .announcements-list {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
-
     .announcement-card {
         margin-bottom: var(--spacing-md);
     }

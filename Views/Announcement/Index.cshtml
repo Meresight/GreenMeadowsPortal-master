@@ -242,7 +242,7 @@
 
                                 <div class="announcement-content">
                                     <h3>@announcement.Title</h3>
-                                    <p>@Html.Raw(announcement.Content.Length > 150 ? announcement.Content.Substring(0, 150) + "..." : announcement.Content)</p>
+                                    @Html.Raw(announcement.Content)
                                 </div>
 
                                 <div class="announcement-footer">
