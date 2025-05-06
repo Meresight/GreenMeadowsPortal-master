@@ -27,7 +27,28 @@ namespace GreenMeadowsPortal.Controllers
             _notificationService = notificationService;
             _contactService = contactService;
         }
+        // Controllers/ContactController.cs (add this method)
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> StaffDirectory()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction("Login", "Account");
 
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var viewModel = new ContactDirectoryViewModel
+            {
+                CurrentUser = user,
+                FirstName = user.FirstName,
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                Role = roles.FirstOrDefault() ?? "Staff",
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
+                StaffContacts = await _contactService.GetStaffContactsForMessagingAsync()
+            };
+
+            return View(viewModel);
+        }
         // GET: /Contact - Main contact directory
         public async Task<IActionResult> Index()
         {

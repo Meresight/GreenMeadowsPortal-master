@@ -19,10 +19,14 @@ namespace GreenMeadowsPortal.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
 
-        public ContactService(AppDbContext context, UserManager<ApplicationUser> userManager)
+        public ContactService(
+      AppDbContext context,
+      UserManager<ApplicationUser> userManager,
+      INotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
+            _notificationService = notificationService;
         }
 
         #region Contact Categories
@@ -205,29 +209,7 @@ namespace GreenMeadowsPortal.Services
                 return GetMockStaffContacts();
             }
         }
-
-        // Update the ContactController.cs with a new action for staff directory
-        [Authorize(Roles = "Admin,Staff")]
-        public async Task<IActionResult> StaffDirectory()
-        {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return RedirectToAction("Login", "Account");
-
-            var roles = await _userManager.GetRolesAsync(user);
-
-            var viewModel = new ContactDirectoryViewModel
-            {
-                CurrentUser = user,
-                FirstName = user.FirstName,
-                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                Role = roles.FirstOrDefault() ?? "Staff",
-                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
-                StaffContacts = await _contactService.GetStaffContactsForMessagingAsync()
-            };
-
-            return View(viewModel);
-        }
+       
         #region Emergency Contacts
         public async Task<List<ContactMessageListingViewModel>> GetAllMessagesAsync()
         {
