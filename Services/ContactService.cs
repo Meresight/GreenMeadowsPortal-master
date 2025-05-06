@@ -485,7 +485,6 @@ namespace GreenMeadowsPortal.Services
         }
 
         // Get a specific message by ID
-        // Get a specific message by ID
         public async Task<ContactMessage?> GetMessageByIdAsync(int id)
         {
             try
@@ -577,22 +576,6 @@ namespace GreenMeadowsPortal.Services
         #endregion
 
         #region Mock Data Methods (Used when database access fails)
-
-        // Helper extension method for determining if email should be shown
-        private static bool ShowEmail(this ApplicationUser user)
-        {
-            // For staff and admins, always show email
-            // For residents, depends on their preferences
-            // This is simplified logic - in production you'd check the user's preferences
-            return true;
-        }
-
-        // Helper extension method for determining if phone should be shown
-        private static bool ShowPhoneNumber(this ApplicationUser user)
-        {
-            // Simplified logic - in production you'd check the user's preferences
-            return !string.IsNullOrEmpty(user.PhoneNumber);
-        }
 
         // Mock category data
         private List<ContactCategory> GetMockContactCategories()
