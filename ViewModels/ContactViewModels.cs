@@ -81,6 +81,8 @@ namespace GreenMeadowsPortal.ViewModels
         public bool ShowEmail { get; set; }
         public bool ShowPhoneNumber { get; set; }
         public bool ShowAddress { get; set; }
+        public bool CanMessage { get; set; } = false;
+
     }
 
     // View model for sending a message
@@ -123,6 +125,12 @@ namespace GreenMeadowsPortal.ViewModels
 
         // Message listings
         public List<ContactMessageListingViewModel> Messages { get; set; } = new List<ContactMessageListingViewModel>();
+
+        // Role-specific customizations
+        public string InboxTitle { get; set; } = "Message Inbox";
+        public bool CanManageAllMessages { get; set; } = false;
+        public bool ShowStaffSection { get; set; } = false;
+        public bool ShowDepartmentSection { get; set; } = false;
     }
 
     // View model for message listing in inbox

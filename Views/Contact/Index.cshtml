@@ -76,10 +76,17 @@
         <!-- Main Content -->
         <div class="content-area">
             <!-- Top Navigation -->
+            <!-- Replace the top-navbar section in Views/Contact/Index.cshtml with this -->
             <header class="top-navbar">
                 <button id="sidebar-toggle" class="sidebar-toggle">
                     <i class="fas fa-bars"></i>
                 </button>
+
+                <div class="back-button">
+                    <a asp-controller="Dashboard" asp-action="@(Model.Role == "Admin" ? "AdminDashboard" : (Model.Role == "Staff" ? "StaffDashboard" : "HomeownerDashboard"))">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
 
                 <div class="navbar-right">
                     <div class="notification-bell">
@@ -119,10 +126,18 @@
                         <a asp-controller="Contact" asp-action="Inbox" class="secondary-btn">
                             <i class="fas fa-envelope"></i> Inbox
                         </a>
+
                         @if (Model.Role == "Admin")
                         {
                             <a asp-controller="Contact" asp-action="Manage" class="primary-btn">
                                 <i class="fas fa-cog"></i> Manage Contacts
+                            </a>
+                        }
+
+                        @if (Model.Role == "Admin" || Model.Role == "Staff")
+                        {
+                            <a asp-controller="Contact" asp-action="StaffDirectory" class="secondary-btn">
+                                <i class="fas fa-user-tie"></i> Staff Directory
                             </a>
                         }
                     </div>
@@ -254,25 +269,23 @@
                                             </div>
                                         </div>
                                         <div class="contact-actions">
+                                            <a href="tel:@contact.PhoneNumber" class="action-btn call" title="Call">
+                                                <i class="fas fa-phone-alt"></i>
+                                            </a>
+                                            <a href="mailto:@contact.Email" class="action-btn email" title="Email">
+                                                <i class="fas fa-envelope"></i>
+                                            </a>
                                             @if (!string.IsNullOrEmpty(contact.UserId))
                                             {
-                                                <a href="tel:@contact.PhoneNumber" class="action-btn call" title="Call">
-                                                    <i class="fas fa-phone-alt"></i>
-                                                </a>
-                                                <a href="mailto:@contact.Email" class="action-btn email" title="Email">
-                                                    <i class="fas fa-envelope"></i>
-                                                </a>
                                                 <a asp-controller="Contact" asp-action="Message" asp-route-id="@contact.UserId" class="action-btn message" title="Send Message">
                                                     <i class="fas fa-comment"></i>
                                                 </a>
                                             }
                                             else
                                             {
-                                                <a href="tel:@contact.PhoneNumber" class="action-btn call" title="Call">
-                                                    <i class="fas fa-phone-alt"></i>
-                                                </a>
-                                                <a href="mailto:@contact.Email" class="action-btn email" title="Email">
-                                                    <i class="fas fa-envelope"></i>
+                                                <!-- For departments without a user ID, create a message form with department email -->
+                                                <a href="mailto:@contact.Email" class="action-btn message" title="Send Email">
+                                                    <i class="fas fa-comment"></i>
                                                 </a>
                                             }
                                         </div>
@@ -293,8 +306,13 @@
                         @if (Model.Role == "Admin" || Model.Role == "Staff")
                         {
                             <div id="staff" class="contact-section" style="display: none;">
-                                <h2><i class="fas fa-user-tie"></i> Staff Directory</h2>
-
+                                <h2>
+                                    <i class="fas fa-user-tie"></i> Staff Directory
+                                    @if (Model.Role == "Admin" || Model.Role == "Staff")
+                                    {
+                                        <a asp-controller="Contact" asp-action="StaffDirectory" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                                    }
+                                </h2>
                                 @if (Model.StaffContacts != null && Model.StaffContacts.Any())
                                 {
                                     foreach (var contact in Model.StaffContacts)
@@ -330,23 +348,23 @@
                                                     }
                                                 </div>
                                             </div>
-                                            <div class="contact-actions">
-                                                @if (contact.ShowPhoneNumber && !string.IsNullOrEmpty(contact.PhoneNumber))
-                                                {
-                                                    <a href="tel:@contact.PhoneNumber" class="action-btn call" title="Call">
-                                                        <i class="fas fa-phone-alt"></i>
-                                                    </a>
-                                                }
-                                                @if (contact.ShowEmail && !string.IsNullOrEmpty(contact.Email))
-                                                {
-                                                    <a href="mailto:@contact.Email" class="action-btn email" title="Email">
-                                                        <i class="fas fa-envelope"></i>
-                                                    </a>
-                                                }
-                                                <a asp-controller="Contact" asp-action="Message" asp-route-id="@contact.UserId" class="action-btn message" title="Send Message">
-                                                    <i class="fas fa-comment"></i>
-                                                </a>
-                                            </div>
+                                          <div class="contact-actions">
+    @if (contact.ShowPhoneNumber && !string.IsNullOrEmpty(contact.PhoneNumber))
+    {
+        <a href="tel:@contact.PhoneNumber" class="action-btn call" title="Call">
+            <i class="fas fa-phone-alt"></i>
+        </a>
+    }
+    @if (contact.ShowEmail && !string.IsNullOrEmpty(contact.Email))
+    {
+        <a href="mailto:@contact.Email" class="action-btn email" title="Email">
+            <i class="fas fa-envelope"></i>
+        </a>
+    }
+    <a asp-controller="Contact" asp-action="Message" asp-route-id="@contact.UserId" class="action-btn message" title="Send Message">
+        <i class="fas fa-comment"></i>
+    </a>
+</div>
                                         </div>
                                     }
                                 }

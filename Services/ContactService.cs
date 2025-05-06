@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GreenMeadowsPortal.Services
 {
@@ -15,6 +17,7 @@ namespace GreenMeadowsPortal.Services
     {
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificationService _notificationService;
 
         public ContactService(AppDbContext context, UserManager<ApplicationUser> userManager)
         {
@@ -159,9 +162,143 @@ namespace GreenMeadowsPortal.Services
         }
 
         #endregion
+        public async Task<List<CommunityContactViewModel>> GetStaffContactsForMessagingAsync()
+        {
+            try
+            {
+                // Get users with Staff or Admin roles
+                var staffRoleIds = await _userManager.GetUsersInRoleAsync("Staff");
+                var adminRoleIds = await _userManager.GetUsersInRoleAsync("Admin");
 
+                var staffUsers = staffRoleIds.Concat(adminRoleIds).Distinct();
+
+                var staffContactsList = new List<CommunityContactViewModel>();
+
+                foreach (var user in staffUsers)
+                {
+                    var roles = await _userManager.GetRolesAsync(user);
+
+                    staffContactsList.Add(new CommunityContactViewModel
+                    {
+                        UserId = user.Id,
+                        FullName = $"{user.FirstName} {user.LastName}",
+                        Email = user.Email ?? string.Empty,
+                        PhoneNumber = user.PhoneNumber ?? string.Empty,
+                        Address = string.Empty, // Never show staff address
+                        Unit = string.Empty,
+                        Role = roles.FirstOrDefault() ?? "Staff",
+                        Department = user.Department ?? "General",
+                        Bio = string.Empty,
+                        ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                        ShowEmail = true,
+                        ShowPhoneNumber = true,
+                        ShowAddress = false,
+                        CanMessage = true // Always allow messaging between staff
+                    });
+                }
+
+                return staffContactsList.OrderBy(c => c.Department).ThenBy(c => c.FullName).ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetStaffContactsForMessagingAsync: {ex.Message}");
+                return GetMockStaffContacts();
+            }
+        }
+
+        // Update the ContactController.cs with a new action for staff directory
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> StaffDirectory()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction("Login", "Account");
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var viewModel = new ContactDirectoryViewModel
+            {
+                CurrentUser = user,
+                FirstName = user.FirstName,
+                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                Role = roles.FirstOrDefault() ?? "Staff",
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
+                StaffContacts = await _contactService.GetStaffContactsForMessagingAsync()
+            };
+
+            return View(viewModel);
+        }
         #region Emergency Contacts
+        public async Task<List<ContactMessageListingViewModel>> GetAllMessagesAsync()
+        {
+            try
+            {
+                var messages = await _context.ContactMessages
+                    .Include(m => m.Sender)
+                    .Include(m => m.Recipient)
+                    .OrderByDescending(m => m.SentDate)
+                    .ToListAsync();
 
+                return messages.Select(m => new ContactMessageListingViewModel
+                {
+                    MessageId = m.Id,
+                    Subject = m.Subject,
+                    SentDate = m.SentDate,
+                    IsRead = m.IsRead,
+
+                    SenderId = m.SenderId,
+                    SenderName = $"{m.Sender.FirstName} {m.Sender.LastName}",
+                    SenderProfileImage = m.Sender.ProfileImageUrl ?? "/images/default-avatar.png",
+
+                    RecipientId = m.RecipientId,
+                    RecipientName = $"{m.Recipient.FirstName} {m.Recipient.LastName}",
+                    RecipientProfileImage = m.Recipient.ProfileImageUrl ?? "/images/default-avatar.png",
+
+                    // For admins, we set this differently than just checking current user
+                    IsFromCurrentUser = false
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetAllMessagesAsync: {ex.Message}");
+                return GetMockMessages("admin");
+            }
+        }
+
+        public async Task<List<ContactMessageListingViewModel>> GetStaffMessagesAsync(string staffId)
+        {
+            try
+            {
+                var messages = await _context.ContactMessages
+                    .Include(m => m.Sender)
+                    .Include(m => m.Recipient)
+                    .Where(m => m.SenderId == staffId || m.RecipientId == staffId)
+                    .OrderByDescending(m => m.SentDate)
+                    .ToListAsync();
+
+                return messages.Select(m => new ContactMessageListingViewModel
+                {
+                    MessageId = m.Id,
+                    Subject = m.Subject,
+                    SentDate = m.SentDate,
+                    IsRead = m.IsRead,
+                    IsFromCurrentUser = m.SenderId == staffId,
+
+                    SenderId = m.SenderId,
+                    SenderName = $"{m.Sender.FirstName} {m.Sender.LastName}",
+                    SenderProfileImage = m.Sender.ProfileImageUrl ?? "/images/default-avatar.png",
+
+                    RecipientId = m.RecipientId,
+                    RecipientName = $"{m.Recipient.FirstName} {m.Recipient.LastName}",
+                    RecipientProfileImage = m.Recipient.ProfileImageUrl ?? "/images/default-avatar.png"
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetStaffMessagesAsync: {ex.Message}");
+                return GetMockMessages(staffId);
+            }
+        }
         // Get all emergency contacts
         public async Task<List<EmergencyContactViewModel>> GetEmergencyContactsAsync()
         {
@@ -195,7 +332,7 @@ namespace GreenMeadowsPortal.Services
             try
             {
                 // Fully qualify the type to resolve ambiguity
-                var contact = new GreenMeadowsPortal.Models.EmergencyContact
+                var emergencyContact = new GreenMeadowsPortal.Models.EmergencyContact
                 {
                     Name = name,
                     PhoneNumber = phoneNumber,
@@ -205,7 +342,7 @@ namespace GreenMeadowsPortal.Services
                 };
 
 
-                _context.EmergencyContacts.Add(contact);
+                _context.EmergencyContacts.Add(emergencyContact);
                 await _context.SaveChangesAsync();
                 return true;
             }
@@ -235,7 +372,6 @@ namespace GreenMeadowsPortal.Services
                 return false;
             }
         }
-
         #endregion
 
         #region Vendor Contacts
@@ -276,7 +412,7 @@ namespace GreenMeadowsPortal.Services
         {
             try
             {
-                var contact = new VendorContact
+                var vendorContact = new VendorContact
                 {
                     CompanyName = name,
                     ContactPerson = contactPerson,
@@ -287,7 +423,7 @@ namespace GreenMeadowsPortal.Services
                     IsPreferred = isPreferred
                 };
 
-                _context.VendorContacts.Add(contact);
+                _context.VendorContacts.Add(vendorContact);
                 await _context.SaveChangesAsync();
                 return true;
             }

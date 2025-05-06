@@ -109,7 +109,7 @@
             <!-- Page Content -->
             <main class="main-content">
                 <div class="page-header">
-                    <h1>Message Inbox</h1>
+                    <h1>@Model.InboxTitle</h1>
                     <nav class="breadcrumb">
                         <a asp-controller="Dashboard" asp-action="@(Model.Role == "Admin" ? "AdminDashboard" : (Model.Role == "Staff" ? "StaffDashboard" : "HomeownerDashboard"))">Dashboard</a> /
                         <a asp-controller="Contact" asp-action="Index">Contact Directory</a> /
@@ -162,6 +162,25 @@
                                 <i class="fas fa-inbox"></i> Received
                                 <span class="filter-count">@Model.Messages.Count(m => !m.IsFromCurrentUser)</span>
                             </div>
+
+                            @if (Model.Role == "Admin")
+                            {
+                                <div class="filter-option" data-filter="staff">
+                                    <i class="fas fa-user-tie"></i> Staff Messages
+                                    <span class="filter-count">
+                                        @Model.Messages.Count(m =>
+                                                 m.SenderName.Contains("Staff") || m.RecipientName.Contains("Staff"))
+                                    </span>
+                                </div>
+
+                                <div class="filter-option" data-filter="homeowner">
+                                    <i class="fas fa-home"></i> Homeowner Messages
+                                    <span class="filter-count">
+                                        @Model.Messages.Count(m =>
+                                                 m.SenderName.Contains("Homeowner") || m.RecipientName.Contains("Homeowner"))
+                                    </span>
+                                </div>
+                            }
                         </div>
 
                         <div class="inbox-actions">
@@ -174,13 +193,24 @@
                                     <i class="fas fa-check-double"></i> Mark All as Read
                                 </button>
                             </form>
+
+                            @if (Model.CanManageAllMessages)
+                            {
+                                <form asp-controller="Contact" asp-action="PurgeDeletedMessages" method="post" class="mt-10">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn danger-btn w-100"
+                                            onclick="return confirm('Are you sure you want to permanently delete all removed messages? This action cannot be undone.');">
+                                        <i class="fas fa-trash"></i> Purge Deleted Messages
+                                    </button>
+                                </form>
+                            }
                         </div>
                     </div>
 
                     <!-- Message Listing -->
                     <div class="inbox-main">
                         <div class="inbox-header">
-                            <h2><i class="fas fa-envelope"></i> Messages</h2>
+                            <h2><i class="fas fa-envelope"></i> @(Model.Role == "Admin" ? "All Messages" : "Messages")</h2>
 
                             <div class="inbox-search">
                                 <input type="text" id="message-search" placeholder="Search messages...">
@@ -193,7 +223,9 @@
                             <div class="message-list" id="message-list">
                                 @foreach (var message in Model.Messages)
                                 {
-                                    <div class="message-item @(!message.IsRead && !message.IsFromCurrentUser ? "unread" : "")" data-type="@(message.IsFromCurrentUser ? "sent" : "received")">
+                                    <div class="message-item @(!message.IsRead && !message.IsFromCurrentUser ? "unread" : "")" data-type="@(message.IsFromCurrentUser ? "sent" : "received")"
+                                         data-role="@(message.SenderName.Contains("Staff") || message.RecipientName.Contains("Staff") ? "staff" :
+                 (message.SenderName.Contains("Admin") || message.RecipientName.Contains("Admin") ? "admin" : "homeowner"))">
                                         <div class="message-avatar">
                                             <img src="@(message.IsFromCurrentUser ? message.RecipientProfileImage : message.SenderProfileImage)" alt="User Avatar">
                                         </div>
@@ -296,26 +328,32 @@
             const messageItems = document.querySelectorAll('.message-item');
 
             filterOptions.forEach(option => {
-                option.addEventListener('click', function() {
-                    // Remove active class from all options
-                    filterOptions.forEach(opt => opt.classList.remove('active'));
+        option.addEventListener('click', function() {
+            // Remove active class from all options
+            filterOptions.forEach(opt => opt.classList.remove('active'));
 
-                    // Add active class to clicked option
-                    this.classList.add('active');
+            // Add active class to clicked option
+            this.classList.add('active');
 
-                    // Get filter value
-                    const filter = this.getAttribute('data-filter');
+            // Get filter value
+            const filter = this.getAttribute('data-filter');
 
-                    // Filter messages
-                    messageItems.forEach(item => {
-                        if (filter === 'all') {
-                            item.style.display = 'flex';
-                        } else if (filter === 'unread') {
-                            item.style.display = item.classList.contains('unread') ? 'flex' : 'none';
-                        } else if (filter === 'sent') {
-                            item.style.display = item.getAttribute('data-type') === 'sent' ? 'flex' : 'none';
-                        } else if (filter === 'received') {
-                            item.style.display = item.getAttribute('data-type') === 'received' ? 'flex' : 'none';
+            // Filter messages
+            messageItems.forEach(item => {
+                if (filter === 'all') {
+                    item.style.display = 'flex';
+                } else if (filter === 'unread') {
+                    item.style.display = item.classList.contains('unread') ? 'flex' : 'none';
+                } else if (filter === 'sent') {
+                    item.style.display = item.getAttribute('data-type') === 'sent' ? 'flex' : 'none';
+                } else if (filter === 'received') {
+                    item.style.display = item.getAttribute('data-type') === 'received' ? 'flex' : 'none';
+                } else if (filter === 'staff') {
+                    item.style.display = item.getAttribute('data-role') === 'staff' ? 'flex' : 'none';
+                } else if (filter === 'homeowner') {
+                    item.style.display = item.getAttribute('data-role') === 'homeowner' ? 'flex' : 'none';
+                } else if (filter === 'admin') {
+                    item.style.display = item.getAttribute('data-role') === 'admin' ? 'flex' : 'none';
                         }
                     });
                 });

@@ -82,6 +82,8 @@ namespace GreenMeadowsPortal.Controllers
         }
 
         // GET: /Contact/Message/{id} - Send message to a contact
+        // Update the Message action in ContactController.cs
+        // GET: /Contact/Message/{id} - Send message to a contact
         public async Task<IActionResult> Message(string id)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -93,6 +95,34 @@ namespace GreenMeadowsPortal.Controllers
 
             if (contactUser == null)
                 return NotFound();
+
+            // Check if current user should be able to message this user
+            var canMessage = false;
+            var contactRoles = await _userManager.GetRolesAsync(contactUser);
+            var currentUserRole = roles.FirstOrDefault() ?? "Homeowner";
+            var contactUserRole = contactRoles.FirstOrDefault() ?? "Homeowner";
+
+            // Admin can message anyone
+            if (currentUserRole == "Admin")
+            {
+                canMessage = true;
+            }
+            // Staff can message staff, admin, and homeowners
+            else if (currentUserRole == "Staff")
+            {
+                canMessage = true; // Staff can message anyone
+            }
+            // Homeowners can message staff and admin but not other homeowners
+            else if (currentUserRole == "Homeowner" && (contactUserRole == "Staff" || contactUserRole == "Admin"))
+            {
+                canMessage = true;
+            }
+
+            if (!canMessage)
+            {
+                TempData["ErrorMessage"] = "You do not have permission to message this user.";
+                return RedirectToAction("Index");
+            }
 
             var messageModel = new ContactMessageViewModel
             {
@@ -171,18 +201,41 @@ namespace GreenMeadowsPortal.Controllers
                 return RedirectToAction("Login", "Account");
 
             var roles = await _userManager.GetRolesAsync(user);
+            var userRole = roles.FirstOrDefault() ?? "Homeowner";
 
-            var inboxModel = new ContactInboxViewModel
+            // Get different messages based on user role
+            var viewModel = new ContactInboxViewModel
             {
                 CurrentUser = user,
                 FirstName = user.FirstName,
                 ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                Role = roles.FirstOrDefault() ?? "Homeowner",
-                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
-                Messages = await _contactService.GetUserMessagesAsync(user.Id)
+                Role = userRole,
+                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id)
             };
 
-            return View(inboxModel);
+            if (userRole == "Admin")
+            {
+                // Admins see all messages
+                viewModel.Messages = await _contactService.GetAllMessagesAsync();
+                viewModel.InboxTitle = "Admin Inbox";
+                viewModel.CanManageAllMessages = true;
+            }
+            else if (userRole == "Staff")
+            {
+                // Staff see messages to/from them plus messages to staff department
+                viewModel.Messages = await _contactService.GetStaffMessagesAsync(user.Id);
+                viewModel.InboxTitle = "Staff Inbox";
+                viewModel.CanManageAllMessages = false;
+            }
+            else
+            {
+                // Homeowners see only their own messages
+                viewModel.Messages = await _contactService.GetUserMessagesAsync(user.Id);
+                viewModel.InboxTitle = "Message Inbox";
+                viewModel.CanManageAllMessages = false;
+            }
+
+            return View(viewModel);
         }
 
         // GET: /Contact/ViewMessage/{id} - View a specific message
