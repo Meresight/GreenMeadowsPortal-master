@@ -140,18 +140,22 @@
 
                     <div class="message-sender-info">
                         <div class="sender-avatar">
-                            <img src="@Model.SenderImageUrl" alt="@Model.SenderName
-                                 @if (Model.SenderRole != "Unknown")
-                                 {
-                                 string roleBadgeClass = Model.SenderRole switch
-                                 {
-                                 "Admin" => "admin",
-                                 "Staff" => "staff",
-                                 "Homeowner" => "homeowner",
-                                 _ => ""
-                                 };
-                            <span class="recipient-role-badge @roleBadgeClass">@Model.SenderRole</span>
-                            }
+                            <img src="@Model.SenderImageUrl" alt="@Model.SenderName">
+                        </div>
+                        <div class="sender-details">
+                            <h3 class="sender-name">
+                                @Model.SenderName
+                                @if (Model.SenderRole != "Unknown")
+                                {
+                                    string roleBadgeClass = Model.SenderRole switch
+                                    {
+                                        "Admin" => "admin",
+                                        "Staff" => "staff",
+                                        "Homeowner" => "homeowner",
+                                        _ => ""
+                                    };
+                                    <span class="recipient-role-badge @roleBadgeClass">@Model.SenderRole</span>
+                                }
                             </h3>
                             <div class="sender-meta">
                                 <p><i class="fas fa-envelope"></i> @Model.SenderEmail</p>

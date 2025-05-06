@@ -3,6 +3,7 @@ using GreenMeadowsPortal.Models;
 using GreenMeadowsPortal.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using GreenMeadowsPortal.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,7 +23,6 @@ namespace GreenMeadowsPortal.Services
         }
 
         #region Contact Categories
-
         // Get all contact categories
         public async Task<List<ContactCategory>> GetAllContactCategoriesAsync()
         {
@@ -194,7 +194,8 @@ namespace GreenMeadowsPortal.Services
         {
             try
             {
-                var contact = new EmergencyContact
+                // Fully qualify the type to resolve ambiguity
+                var contact = new GreenMeadowsPortal.Models.EmergencyContact
                 {
                     Name = name,
                     PhoneNumber = phoneNumber,
@@ -202,6 +203,7 @@ namespace GreenMeadowsPortal.Services
                     Description = description,
                     Priority = priority
                 };
+
 
                 _context.EmergencyContacts.Add(contact);
                 await _context.SaveChangesAsync();
@@ -341,8 +343,8 @@ namespace GreenMeadowsPortal.Services
                     {
                         UserId = user.Id,
                         FullName = $"{user.FirstName} {user.LastName}",
-                        Email = user.ShowEmail() ? user.Email : string.Empty,
-                        PhoneNumber = user.ShowPhoneNumber() ? user.PhoneNumber : string.Empty,
+                        Email = user.ShowEmail() && !string.IsNullOrEmpty(user.Email) ? user.Email : string.Empty,
+                        PhoneNumber = user.ShowPhoneNumber() && !string.IsNullOrEmpty(user.PhoneNumber) ? user.PhoneNumber : string.Empty,
                         Address = string.Empty, // Never show staff address
                         Unit = string.Empty,
                         Role = roles.FirstOrDefault() ?? "Staff",
@@ -390,7 +392,7 @@ namespace GreenMeadowsPortal.Services
                     communityContactsList.Add(new CommunityContactViewModel
                     {
                         UserId = contact.UserId,
-                        FullName = $"{contact.User.FirstName} {contact.User.LastName}",
+                        FullName = $"{contact.User?.FirstName ?? "Unknown"} {contact.User?.LastName ?? "User"}",
                         Email = contact.ShowEmail && contact.User?.Email != null ? contact.User.Email : string.Empty,
                         PhoneNumber = contact.ShowPhoneNumber && contact.User?.PhoneNumber != null ? contact.User.PhoneNumber : string.Empty,
                         Address = contact.ShowAddress && contact.User?.Address != null ? contact.User.Address : string.Empty,
