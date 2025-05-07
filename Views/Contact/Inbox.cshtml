@@ -218,12 +218,14 @@
                             </div>
                         </div>
 
-                        @if (Model.Messages != null && Model.Messages.Any())
-                        {
-                            <div class="message-list" id="message-list">
-                                @foreach (var message in Model.Messages)
+                        <!-- Update the messages section to better handle empty results and update styles -->
+                        <div id="message-list">
+                            @if (Model.Messages != null && Model.Messages.Any())
+                            {
+                                foreach (var message in Model.Messages)
                                 {
-                                    <div class="message-item @(!message.IsRead && !message.IsFromCurrentUser ? "unread" : "")" data-type="@(message.IsFromCurrentUser ? "sent" : "received")"
+                                    <div class="message-item @(!message.IsRead && !message.IsFromCurrentUser ? "unread" : "")"
+                                         data-type="@(message.IsFromCurrentUser ? "sent" : "received")"
                                          data-role="@(message.SenderName.Contains("Staff") || message.RecipientName.Contains("Staff") ? "staff" :
                  (message.SenderName.Contains("Admin") || message.RecipientName.Contains("Admin") ? "admin" : "homeowner"))">
                                         <div class="message-avatar">
@@ -263,7 +265,21 @@
                                         </div>
                                     </div>
                                 }
-                            </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state">
+                                    <div class="empty-icon">
+                                        <i class="fas fa-envelope-open"></i>
+                                    </div>
+                                    <h3>No Messages</h3>
+                                    <p>You don't have any messages yet.</p>
+                                    <a asp-controller="Contact" asp-action="Index" class="btn primary-btn mt-4">
+                                        <i class="fas fa-paper-plane"></i> Send a Message
+                                    </a>
+                                </div>
+                            }
+                        </div>
                         }
                         else
                         {

@@ -105,25 +105,29 @@ namespace GreenMeadowsPortal.Controllers
         // GET: /Contact/Message/{id} - Send message to a contact
         // Update the Message action in ContactController.cs
         // GET: /Contact/Message/{id} - Send message to a contact
+        // Updated Message action to fix permission issues
+        [HttpGet]
         public async Task<IActionResult> Message(string id)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
                 return RedirectToAction("Login", "Account");
 
-            var roles = await _userManager.GetRolesAsync(currentUser);
-            var contactUser = await _userManager.FindByIdAsync(id);
-
+            var contactUser = await _userManager.FindAsync(id);
             if (contactUser == null)
-                return NotFound();
+                return NotFound("User not found");
 
-            // Check if current user should be able to message this user
-            var canMessage = false;
-            var contactRoles = await _userManager.GetRolesAsync(contactUser);
-            var currentUserRole = roles.FirstOrDefault() ?? "Homeowner";
-            var contactUserRole = contactRoles.FirstOrDefault() ?? "Homeowner";
+            // Get roles for both users
+            var currentUserRoles = await _userManager.GetRolesAsync(currentUser);
+            var contactUserRoles = await _userManager.GetRolesAsync(contactUser);
 
-            // Admin can message anyone
+            var currentUserRole = currentUserRoles.FirstOrDefault() ?? "Homeowner";
+            var contactUserRole = contactUserRoles.FirstOrDefault() ?? "Homeowner";
+
+            // Set messaging permissions based on roles
+            bool canMessage = false;
+
+            // Admin can message anyone, including other admins and staff
             if (currentUserRole == "Admin")
             {
                 canMessage = true;
@@ -131,10 +135,11 @@ namespace GreenMeadowsPortal.Controllers
             // Staff can message staff, admin, and homeowners
             else if (currentUserRole == "Staff")
             {
-                canMessage = true; // Staff can message anyone
+                canMessage = true;
             }
-            // Homeowners can message staff and admin but not other homeowners
-            else if (currentUserRole == "Homeowner" && (contactUserRole == "Staff" || contactUserRole == "Admin"))
+            // Homeowners can message staff and admin
+            else if (currentUserRole == "Homeowner" &&
+                     (contactUserRole == "Staff" || contactUserRole == "Admin"))
             {
                 canMessage = true;
             }
@@ -151,14 +156,14 @@ namespace GreenMeadowsPortal.Controllers
                 ContactUser = contactUser,
                 FirstName = currentUser.FirstName,
                 ProfileImageUrl = currentUser.ProfileImageUrl ?? "/images/default-avatar.png",
-                Role = roles.FirstOrDefault() ?? "Homeowner",
+                Role = currentUserRole,
                 NotificationCount = await _notificationService.GetUnreadCountAsync(currentUser.Id),
 
                 // Contact details
                 ContactId = contactUser.Id,
                 ContactName = $"{contactUser.FirstName} {contactUser.LastName}",
                 ContactEmail = contactUser.Email ?? string.Empty,
-                ContactRole = await _contactService.GetUserRoleAsync(contactUser),
+                ContactRole = contactUserRole,
                 ContactDepartment = contactUser.Department ?? "General",
                 ContactImageUrl = contactUser.ProfileImageUrl ?? "/images/default-avatar.png"
             };

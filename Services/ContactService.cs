@@ -83,6 +83,7 @@ namespace GreenMeadowsPortal.Services
         }
 
         // Add a new contact category
+        // Add a new contact category
         public async Task<bool> AddContactCategoryAsync(string name, string description, bool isPublic)
         {
             try
@@ -543,6 +544,25 @@ namespace GreenMeadowsPortal.Services
         {
             try
             {
+                // Validate the inputs
+                if (string.IsNullOrEmpty(senderId) || string.IsNullOrEmpty(recipientId) ||
+                    string.IsNullOrEmpty(subject) || string.IsNullOrEmpty(message))
+                {
+                    _logger.LogWarning("SendMessageAsync called with invalid parameters");
+                    return false;
+                }
+
+                // Check if users exist
+                var sender = await _context.Users.FindAsync(senderId);
+                var recipient = await _context.Users.FindAsync(recipientId);
+
+                if (sender == null || recipient == null)
+                {
+                    _logger.LogWarning("SendMessageAsync: User not found - Sender: {SenderId}, Recipient: {RecipientId}",
+                        senderId, recipientId);
+                    return false;
+                }
+
                 var contactMessage = new ContactMessage
                 {
                     SenderId = senderId,
@@ -555,11 +575,14 @@ namespace GreenMeadowsPortal.Services
 
                 _context.ContactMessages.Add(contactMessage);
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Message sent successfully from {SenderId} to {RecipientId}",
+                    senderId, recipientId);
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in SendMessageAsync: {ex.Message}");
+                _logger.LogError(ex, "Error in SendMessageAsync: {Message}", ex.Message);
                 return false;
             }
         }
@@ -578,6 +601,7 @@ namespace GreenMeadowsPortal.Services
                     .OrderByDescending(m => m.SentDate)
                     .ToListAsync();
 
+                // Make sure to handle null user references properly
                 return messages.Select(m => new ContactMessageListingViewModel
                 {
                     MessageId = m.Id,
@@ -587,20 +611,21 @@ namespace GreenMeadowsPortal.Services
                     IsFromCurrentUser = m.SenderId == userId,
 
                     SenderId = m.SenderId,
-                    SenderName = $"{m.Sender.FirstName} {m.Sender.LastName}",
-                    SenderProfileImage = m.Sender.ProfileImageUrl ?? "/images/default-avatar.png",
+                    SenderName = m.Sender != null ? $"{m.Sender.FirstName ?? ""} {m.Sender.LastName ?? ""}" : "Unknown User",
+                    SenderProfileImage = m.Sender?.ProfileImageUrl ?? "/images/default-avatar.png",
 
                     RecipientId = m.RecipientId,
-                    RecipientName = $"{m.Recipient.FirstName} {m.Recipient.LastName}",
-                    RecipientProfileImage = m.Recipient.ProfileImageUrl ?? "/images/default-avatar.png"
+                    RecipientName = m.Recipient != null ? $"{m.Recipient.FirstName ?? ""} {m.Recipient.LastName ?? ""}" : "Unknown User",
+                    RecipientProfileImage = m.Recipient?.ProfileImageUrl ?? "/images/default-avatar.png"
                 }).ToList();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in GetUserMessagesAsync: {ex.Message}");
-                return GetMockMessages(userId);
+                _logger.LogError(ex, "Error in GetUserMessagesAsync: {Message}", ex.Message);
+                return new List<ContactMessageListingViewModel>(); // Return empty list on error
             }
         }
+
 
         // Get a specific message by ID
         public async Task<ContactMessage?> GetMessageByIdAsync(int id)
