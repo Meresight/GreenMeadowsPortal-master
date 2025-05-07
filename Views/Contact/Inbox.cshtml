@@ -217,8 +217,8 @@
                                 <button id="search-btn"><i class="fas fa-search"></i></button>
                             </div>
                         </div>
-
-                        <!-- Update the messages section to better handle empty results and update styles -->
+                        </div>
+                        <!-- Update the messages section to better handle empty results and update styles -->             
                         <div id="message-list">
                             @if (Model.Messages != null && Model.Messages.Any())
                             {
@@ -227,7 +227,7 @@
                                     <div class="message-item @(!message.IsRead && !message.IsFromCurrentUser ? "unread" : "")"
                                          data-type="@(message.IsFromCurrentUser ? "sent" : "received")"
                                          data-role="@(message.SenderName.Contains("Staff") || message.RecipientName.Contains("Staff") ? "staff" :
-                 (message.SenderName.Contains("Admin") || message.RecipientName.Contains("Admin") ? "admin" : "homeowner"))">
+                   (message.SenderName.Contains("Admin") || message.RecipientName.Contains("Admin") ? "admin" : "homeowner"))">
                                         <div class="message-avatar">
                                             <img src="@(message.IsFromCurrentUser ? message.RecipientProfileImage : message.SenderProfileImage)" alt="User Avatar">
                                         </div>
@@ -280,21 +280,6 @@
                                 </div>
                             }
                         </div>
-                        }
-                        else
-                        {
-                            <div class="empty-state">
-                                <div class="empty-icon">
-                                    <i class="fas fa-envelope-open"></i>
-                                </div>
-                                <h3>No Messages</h3>
-                                <p>You don't have any messages yet.</p>
-                                <a asp-controller="Contact" asp-action="Index" class="btn primary-btn mt-4">
-                                    <i class="fas fa-paper-plane"></i> Send a Message
-                                </a>
-                            </div>
-                        }
-                    </div>
                 </div>
             </main>
 

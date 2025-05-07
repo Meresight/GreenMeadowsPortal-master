@@ -368,35 +368,51 @@ namespace GreenMeadowsPortal.Controllers
         }
 
         // POST: /Contact/DeleteMessage/{id} - Delete a message
+        // Update the DeleteMessage method in ContactController.cs
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMessage(int id)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return RedirectToAction("Login", "Account");
-
-            var message = await _contactService.GetMessageByIdAsync(id);
-            if (message == null)
-                return NotFound();
-
-            // Check if user is the sender or recipient
-            if (message.SenderId != user.Id && message.RecipientId != user.Id)
-                return Forbid();
-
-            // Delete the message
-            var success = await _contactService.DeleteMessageAsync(id, user.Id);
-
-            if (success)
+            try
             {
-                TempData["SuccessMessage"] = "Message deleted successfully.";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = "Failed to delete message.";
-            }
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                    return RedirectToAction("Login", "Account");
 
-            return RedirectToAction("Inbox");
+                var message = await _contactService.GetMessageByIdAsync(id);
+                if (message == null)
+                {
+                    TempData["ErrorMessage"] = "Message not found.";
+                    return RedirectToAction("Inbox");
+                }
+
+                // Check if user is the sender or recipient
+                if (message.SenderId != user.Id && message.RecipientId != user.Id)
+                {
+                    TempData["ErrorMessage"] = "You do not have permission to delete this message.";
+                    return RedirectToAction("Inbox");
+                }
+
+                // Delete the message
+                var success = await _contactService.DeleteMessageAsync(id, user.Id);
+
+                if (success)
+                {
+                    TempData["SuccessMessage"] = "Message deleted successfully.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Failed to delete message.";
+                }
+
+                return RedirectToAction("Inbox");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting message {id}", id);
+                TempData["ErrorMessage"] = "An error occurred while deleting the message: " + ex.Message;
+                return RedirectToAction("Inbox");
+            }
         }
 
         // Admin only methods for managing contacts
@@ -524,7 +540,45 @@ namespace GreenMeadowsPortal.Controllers
 
             return RedirectToAction("Manage");
         }
+        // First, let's fix the AddContactCategory method in the ContactController.cs
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AddContactCategory(AddContactCategoryViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = "Please provide all required information.";
+                return RedirectToAction("Manage");
+            }
 
+            try
+            {
+                var success = await _contactService.AddContactCategoryAsync(
+                    name: model.CategoryName,
+                    description: model.Description,
+                    isPublic: model.IsPublic
+                );
+
+                if (success)
+                {
+                    TempData["SuccessMessage"] = "Contact category added successfully.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Failed to add contact category.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding contact category");
+                TempData["ErrorMessage"] = "An error occurred while adding the contact category: " + ex.Message;
+            }
+
+            return RedirectToAction("Manage");
+        }
+
+       
         // POST: /Contact/DeleteContact - Delete a contact
         [HttpPost]
         [ValidateAntiForgeryToken]

@@ -92,13 +92,25 @@ namespace GreenMeadowsPortal.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(name))
+                    return false;
+
                 // Get the highest display order and add 1
-                int maxOrder = await _context.ContactCategories.MaxAsync(c => (int?)c.DisplayOrder) ?? 0;
+                int maxOrder = 0;
+                try
+                {
+                    maxOrder = await _context.ContactCategories.MaxAsync(c => (int?)c.DisplayOrder) ?? 0;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error getting max display order for contact categories");
+                    // Continue with default value 0
+                }
 
                 var category = new ContactCategory
                 {
                     Name = name,
-                    Description = description,
+                    Description = description ?? string.Empty,
                     IsPublic = isPublic,
                     DisplayOrder = maxOrder + 1
                 };
@@ -109,7 +121,7 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in AddContactCategoryAsync: {ex.Message}");
+                _logger.LogError(ex, "Error in AddContactCategoryAsync: {Message}", ex.Message);
                 return false;
             }
         }
@@ -399,14 +411,18 @@ namespace GreenMeadowsPortal.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(phoneNumber) || string.IsNullOrEmpty(service))
+                    return false;
+
                 var vendorContact = new VendorContact
                 {
                     CompanyName = name,
-                    ContactPerson = contactPerson,
+                    ContactPerson = contactPerson ?? string.Empty,
                     PhoneNumber = phoneNumber,
-                    Email = email,
+                    Email = email ?? string.Empty,
                     Service = service,
-                    Website = website,
+                    Website = website ?? string.Empty,
+                    Notes = string.Empty, // Setting default value
                     IsPreferred = isPreferred
                 };
 
@@ -416,10 +432,11 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in AddVendorContactAsync: {ex.Message}");
+                _logger.LogError(ex, "Error in AddVendorContactAsync: {Message}", ex.Message);
                 return false;
             }
         }
+
 
         // Delete a vendor contact
         public async Task<bool> DeleteVendorContactAsync(int id)
@@ -544,6 +561,7 @@ namespace GreenMeadowsPortal.Services
         #region Messaging
 
         // Send a message between users
+        // Update the SendMessageAsync method in ContactService.cs
         public async Task<bool> SendMessageAsync(string senderId, string recipientId, string subject, string message)
         {
             try
@@ -574,7 +592,9 @@ namespace GreenMeadowsPortal.Services
                     Subject = subject,
                     Content = message,
                     SentDate = DateTime.Now,
-                    IsRead = false
+                    IsRead = false,
+                    DeletedBySender = false,
+                    DeletedByRecipient = false
                 };
 
                 _context.ContactMessages.Add(contactMessage);
@@ -592,6 +612,7 @@ namespace GreenMeadowsPortal.Services
         }
 
         // Get messages for a user (both sent and received)
+        // Update the GetUserMessagesAsync method in ContactService.cs
         public async Task<List<ContactMessageListingViewModel>> GetUserMessagesAsync(string userId)
         {
             try
@@ -615,11 +636,15 @@ namespace GreenMeadowsPortal.Services
                     IsFromCurrentUser = m.SenderId == userId,
 
                     SenderId = m.SenderId,
-                    SenderName = m.Sender != null ? $"{m.Sender.FirstName ?? ""} {m.Sender.LastName ?? ""}" : "Unknown User",
+                    SenderName = m.Sender != null
+                        ? $"{m.Sender.FirstName ?? ""} {m.Sender.LastName ?? ""}".Trim()
+                        : "Unknown User",
                     SenderProfileImage = m.Sender?.ProfileImageUrl ?? "/images/default-avatar.png",
 
                     RecipientId = m.RecipientId,
-                    RecipientName = m.Recipient != null ? $"{m.Recipient.FirstName ?? ""} {m.Recipient.LastName ?? ""}" : "Unknown User",
+                    RecipientName = m.Recipient != null
+                        ? $"{m.Recipient.FirstName ?? ""} {m.Recipient.LastName ?? ""}".Trim()
+                        : "Unknown User",
                     RecipientProfileImage = m.Recipient?.ProfileImageUrl ?? "/images/default-avatar.png"
                 }).ToList();
             }
@@ -671,6 +696,7 @@ namespace GreenMeadowsPortal.Services
         }
 
         // Delete a message (soft delete)
+        // Fix the DeleteMessageAsync method in ContactService.cs
         public async Task<bool> DeleteMessageAsync(int id, string userId)
         {
             try
@@ -698,17 +724,21 @@ namespace GreenMeadowsPortal.Services
                 {
                     _context.ContactMessages.Remove(message);
                 }
+                else
+                {
+                    // Otherwise just update the flags
+                    _context.Entry(message).State = EntityState.Modified;
+                }
 
                 await _context.SaveChangesAsync();
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in DeleteMessageAsync: {ex.Message}");
+                _logger.LogError(ex, "Error in DeleteMessageAsync: {Message}", ex.Message);
                 return false;
             }
         }
-
         #endregion
 
         #region Helper Methods
