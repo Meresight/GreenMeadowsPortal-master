@@ -16,6 +16,7 @@
     top: 90px;
     height: fit-content;
 }
+
 category-list {
     display: flex;
     flex-direction: column;
@@ -76,6 +77,7 @@ category-list {
             margin-right: 10px;
             color: var(--primary-color);
         }
+
 .contact-main {
     flex: 1;
     background-color: #fff;
@@ -1355,7 +1357,7 @@ textarea.form-control {
     /* Additional utility classes */
     .w-100 {
         width: 100%;
-    }   
+    }
 
     .mt-10 {
         margin-top: 10px;
@@ -2016,4 +2018,3 @@ textarea.form-control {
         margin-bottom: 15px;
     }
 }
-

@@ -217,8 +217,8 @@
                                 <button id="search-btn"><i class="fas fa-search"></i></button>
                             </div>
                         </div>
-                        </div>
-                        <!-- Update the messages section to better handle empty results and update styles -->             
+
+                        <!-- Message List Section - Fixed placement -->
                         <div id="message-list">
                             @if (Model.Messages != null && Model.Messages.Any())
                             {
@@ -227,7 +227,7 @@
                                     <div class="message-item @(!message.IsRead && !message.IsFromCurrentUser ? "unread" : "")"
                                          data-type="@(message.IsFromCurrentUser ? "sent" : "received")"
                                          data-role="@(message.SenderName.Contains("Staff") || message.RecipientName.Contains("Staff") ? "staff" :
-                   (message.SenderName.Contains("Admin") || message.RecipientName.Contains("Admin") ? "admin" : "homeowner"))">
+               (message.SenderName.Contains("Admin") || message.RecipientName.Contains("Admin") ? "admin" : "homeowner"))">
                                         <div class="message-avatar">
                                             <img src="@(message.IsFromCurrentUser ? message.RecipientProfileImage : message.SenderProfileImage)" alt="User Avatar">
                                         </div>
@@ -280,9 +280,9 @@
                                 </div>
                             }
                         </div>
+                    </div>
                 </div>
-            </main>
-
+                </main>
             <!-- Footer -->
             <footer class="main-footer">
                 <div class="footer-content">
