@@ -20,14 +20,14 @@ namespace GreenMeadowsPortal.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly AnnouncementService _announcementService;
-        private readonly NotificationService _notificationService;
+        private readonly INotificationService _notificationService; // Changed to interface
 
         public DashboardController(
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
             SignInManager<ApplicationUser> signInManager,
             AnnouncementService announcementService,
-            NotificationService notificationService)
+            INotificationService notificationService) // Changed to interface
         {
             _userManager = userManager;
             _roleManager = roleManager;

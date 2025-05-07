@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace GreenMeadowsPortal.Services
 {
-    public class NotificationService
+    public class NotificationService : INotificationService
     {
         private readonly AppDbContext _context;
 
@@ -18,13 +18,13 @@ namespace GreenMeadowsPortal.Services
             _context = context;
         }
 
-        // Update the CreateNotificationAsync method to handle the nullable reference type warning
+        // Implementation of INotificationService methods
         public async Task<int> CreateNotificationAsync(string userId, string title, string message, string type, string? referenceId = null)
         {
             try
             {
                 var user = await _context.Users
-                    .OfType<ApplicationUser>() // Ensure we are querying ApplicationUser
+                    .OfType<ApplicationUser>()
                     .FirstOrDefaultAsync(u => u.Id.ToString() == userId);
 
                 if (user == null)
@@ -35,11 +35,11 @@ namespace GreenMeadowsPortal.Services
                 var notification = new Notification
                 {
                     UserId = userId,
-                    User = user, // Set the required User property
+                    User = user,
                     Title = title,
                     Message = message,
                     Type = type,
-                    ReferenceId = referenceId ?? string.Empty, // Use an empty string if referenceId is null
+                    ReferenceId = referenceId ?? string.Empty,
                     IsRead = false,
                     CreatedAt = DateTime.Now
                 };
@@ -50,13 +50,11 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Log error
                 Console.WriteLine($"Error creating notification: {ex.Message}");
-                return 0; // Return 0 as fallback
+                return 0;
             }
         }
 
-        // Get notifications for a user
         public async Task<List<NotificationViewModel>> GetNotificationsForUserAsync(string userId, int page = 1, int pageSize = 10)
         {
             try
@@ -82,10 +80,7 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Log error and return mock data
                 Console.WriteLine($"Error getting notifications: {ex.Message}");
-
-                // Return mock data
                 return new List<NotificationViewModel>
                 {
                     new NotificationViewModel
@@ -112,7 +107,6 @@ namespace GreenMeadowsPortal.Services
             }
         }
 
-        // Get unread notifications count
         public async Task<int> GetUnreadCountAsync(string userId)
         {
             try
@@ -122,13 +116,11 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Log error and return dummy count
                 Console.WriteLine($"Error getting unread count: {ex.Message}");
-                return 2; // Return dummy count
+                return 2;
             }
         }
 
-        // Mark notification as read
         public async Task MarkAsReadAsync(int notificationId)
         {
             try
@@ -143,12 +135,10 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Log error
                 Console.WriteLine($"Error marking notification as read: {ex.Message}");
             }
         }
 
-        // Mark all notifications as read for a user
         public async Task MarkAllAsReadAsync(string userId)
         {
             try
@@ -167,12 +157,10 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Log error
                 Console.WriteLine($"Error marking all notifications as read: {ex.Message}");
             }
         }
 
-        // Delete a notification
         public async Task DeleteNotificationAsync(int notificationId)
         {
             try
@@ -186,12 +174,10 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Log error
                 Console.WriteLine($"Error deleting notification: {ex.Message}");
             }
         }
 
-        // Delete all notifications for a user
         public async Task DeleteAllNotificationsAsync(string userId)
         {
             try
@@ -205,11 +191,9 @@ namespace GreenMeadowsPortal.Services
             }
             catch (Exception ex)
             {
-                // Log error
                 Console.WriteLine($"Error deleting all notifications: {ex.Message}");
             }
         }
-
         // Get notification by ID
         public async Task<NotificationViewModel?> GetNotificationByIdAsync(int notificationId)
         {

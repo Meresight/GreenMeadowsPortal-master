@@ -8,7 +8,7 @@ namespace GreenMeadowsPortal.Services
     public interface INotificationService
     {
         Task<int> GetUnreadCountAsync(string userId);
-        Task CreateNotificationAsync(string userId, string title, string message, string type, string? referenceId = null);
+        Task<int> CreateNotificationAsync(string userId, string title, string message, string type, string? referenceId = null);
         Task MarkAsReadAsync(int notificationId);
         Task MarkAllAsReadAsync(string userId);
         Task DeleteNotificationAsync(int notificationId);
