@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using GreenMeadowsPortal.Controllers;
 
 namespace GreenMeadowsPortal.Services
 {
@@ -18,15 +19,18 @@ namespace GreenMeadowsPortal.Services
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<ContactController> _logger;
 
         public ContactService(
       AppDbContext context,
       UserManager<ApplicationUser> userManager,
-      INotificationService notificationService)
+      INotificationService notificationService,
+       ILogger<ContactController> logger)
         {
             _context = context;
             _userManager = userManager;
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         #region Contact Categories

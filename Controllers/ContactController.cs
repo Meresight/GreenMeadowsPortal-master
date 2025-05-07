@@ -17,15 +17,18 @@ namespace GreenMeadowsPortal.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly NotificationService _notificationService;
         private readonly ContactService _contactService;
+        private readonly ILogger<ContactController> _logger;
 
         public ContactController(
             UserManager<ApplicationUser> userManager,
             NotificationService notificationService,
-            ContactService contactService)
+            ContactService contactService,
+            ILogger<ContactController> logger)
         {
             _userManager = userManager;
             _notificationService = notificationService;
             _contactService = contactService;
+            _logger = logger;
         }
         // Controllers/ContactController.cs (add this method)
         [Authorize(Roles = "Admin,Staff")]
@@ -113,7 +116,7 @@ namespace GreenMeadowsPortal.Controllers
             if (currentUser == null)
                 return RedirectToAction("Login", "Account");
 
-            var contactUser = await _userManager.FindAsync(id);
+            var contactUser = await _userManager.FindByIdAsync(id);
             if (contactUser == null)
                 return NotFound("User not found");
 
