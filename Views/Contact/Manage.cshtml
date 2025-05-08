@@ -144,7 +144,12 @@
                             <span class="notification-count">@Model.NotificationCount</span>
                         </a>
                     </div>
-
+                    <div class="inbox-icon">
+                        <a asp-controller="Contact" asp-action="Inbox">
+                            <i class="fas fa-envelope"></i>
+                            <span class="unread-messages" id="unread-message-count">0</span>
+                        </a>
+                    </div>
                     <div class="user-dropdown">
                         <img src="@Model.ProfileImageUrl" alt="User Avatar">
                         <span>@Model.FirstName</span>
@@ -213,7 +218,7 @@
                         <!-- Add Category Form -->
                         <div class="form-container" id="category-form" style="display: none;">
                             <h3>Add Contact Category</h3>
-                            <form asp-controller="Contact" asp-action="AddCategory" method="post">
+                            <form asp-controller="Contact" asp-action="AddContactCategory" method="post">
                                 @Html.AntiForgeryToken()
                                 <div class="form-row">
                                     <div class="form-group">

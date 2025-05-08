@@ -87,13 +87,15 @@ namespace GreenMeadowsPortal.Services
         }
 
         // Add a new contact category
-        // Add a new contact category
         public async Task<bool> AddContactCategoryAsync(string name, string description, bool isPublic)
         {
             try
             {
                 if (string.IsNullOrEmpty(name))
+                {
+                    _logger.LogWarning("Cannot add contact category with empty name");
                     return false;
+                }
 
                 // Get the highest display order and add 1
                 int maxOrder = 0;
@@ -117,6 +119,8 @@ namespace GreenMeadowsPortal.Services
 
                 _context.ContactCategories.Add(category);
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Successfully added contact category: {name}");
                 return true;
             }
             catch (Exception ex)
@@ -407,12 +411,16 @@ namespace GreenMeadowsPortal.Services
         }
 
         // Add a new vendor contact
-        public async Task<bool> AddVendorContactAsync(string name, string contactPerson, string phoneNumber, string email, string service, string website, bool isPreferred)
+        public async Task<bool> AddVendorContactAsync(string name, string contactPerson, string phoneNumber,
+    string email, string service, string website, bool isPreferred)
         {
             try
             {
                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(phoneNumber) || string.IsNullOrEmpty(service))
+                {
+                    _logger.LogWarning("Cannot add vendor with empty required fields");
                     return false;
+                }
 
                 var vendorContact = new VendorContact
                 {
@@ -422,12 +430,14 @@ namespace GreenMeadowsPortal.Services
                     Email = email ?? string.Empty,
                     Service = service,
                     Website = website ?? string.Empty,
-                    Notes = string.Empty, // Setting default value
+                    Notes = string.Empty,
                     IsPreferred = isPreferred
                 };
 
                 _context.VendorContacts.Add(vendorContact);
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Successfully added vendor contact: {name}");
                 return true;
             }
             catch (Exception ex)
@@ -574,17 +584,17 @@ namespace GreenMeadowsPortal.Services
                     return false;
                 }
 
-                // Check if users exist
+                // Check if users exist before attempting to send message
                 var sender = await _context.Users.FindAsync(senderId);
                 var recipient = await _context.Users.FindAsync(recipientId);
 
                 if (sender == null || recipient == null)
                 {
-                    _logger.LogWarning("SendMessageAsync: User not found - Sender: {SenderId}, Recipient: {RecipientId}",
-                        senderId, recipientId);
+                    _logger.LogWarning($"SendMessageAsync: User not found - Sender: {senderId}, Recipient: {recipientId}");
                     return false;
                 }
 
+                // Create the message object
                 var contactMessage = new ContactMessage
                 {
                     SenderId = senderId,
@@ -597,11 +607,11 @@ namespace GreenMeadowsPortal.Services
                     DeletedByRecipient = false
                 };
 
+                // Add to database
                 _context.ContactMessages.Add(contactMessage);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Message sent successfully from {SenderId} to {RecipientId}",
-                    senderId, recipientId);
+                _logger.LogInformation($"Message sent successfully from {senderId} to {recipientId}");
                 return true;
             }
             catch (Exception ex)
@@ -612,11 +622,27 @@ namespace GreenMeadowsPortal.Services
         }
 
         // Get messages for a user (both sent and received)
-        // Update the GetUserMessagesAsync method in ContactService.cs
+        public async Task<int> GetUnreadMessageCountAsync(string userId)
+        {
+            try
+            {
+                return await _context.ContactMessages
+                    .CountAsync(m => m.RecipientId == userId && !m.IsRead && !m.DeletedByRecipient);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting unread message count: {Message}", ex.Message);
+                return 0;
+            }
+        }
         public async Task<List<ContactMessageListingViewModel>> GetUserMessagesAsync(string userId)
         {
             try
             {
+                _logger.LogInformation($"Getting messages for user ID: {userId}");
+
+                // Get all messages where the user is either sender or recipient
+                // and respect the soft delete flags
                 var messages = await _context.ContactMessages
                     .Include(m => m.Sender)
                     .Include(m => m.Recipient)
@@ -626,8 +652,10 @@ namespace GreenMeadowsPortal.Services
                     .OrderByDescending(m => m.SentDate)
                     .ToListAsync();
 
-                // Make sure to handle null user references properly
-                return messages.Select(m => new ContactMessageListingViewModel
+                _logger.LogInformation($"Found {messages.Count} messages for user {userId}");
+
+                // Map to view models with proper null checks
+                var result = messages.Select(m => new ContactMessageListingViewModel
                 {
                     MessageId = m.Id,
                     Subject = m.Subject,
@@ -647,11 +675,13 @@ namespace GreenMeadowsPortal.Services
                         : "Unknown User",
                     RecipientProfileImage = m.Recipient?.ProfileImageUrl ?? "/images/default-avatar.png"
                 }).ToList();
+
+                return result;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetUserMessagesAsync: {Message}", ex.Message);
-                return new List<ContactMessageListingViewModel>(); // Return empty list on error
+                return new List<ContactMessageListingViewModel>();
             }
         }
 

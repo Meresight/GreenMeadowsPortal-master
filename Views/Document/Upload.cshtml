@@ -1,0 +1,416 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using GreenMeadowsPortal.ViewModels
+@model DocumentUploadViewModel
+
+@{
+    ViewData["Title"] = "Upload Document - Green Meadows Portal";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Meadows | Upload Document</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/admin.css">
+    <link rel="stylesheet" href="~/css/documents.css">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Green Meadows</h3>
+                <div class="sidebar-logo">GM</div>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <img src="@Model.ProfileImageUrl" alt="User Avatar">
+                </div>
+                <div class="user-info">
+                    <h4>@Model.FirstName</h4>
+                    <p>@Model.Role</p>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                @if (Model.Role == "Admin")
+                {
+                    <li>
+                        <a asp-controller="Dashboard" asp-action="AdminDashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                    </li>
+                    <li>
+                        <a asp-controller="Dashboard" asp-action="UserManagement"><i class="fas fa-users"></i> User Management</a>
+                    </li>
+                }
+                else if (Model.Role == "Staff")
+                {
+                    <li>
+                        <a asp-controller="Dashboard" asp-action="StaffDashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                    </li>
+                }
+                else
+                {
+                    <li>
+                        <a asp-controller="Dashboard" asp-action="HomeownerDashboard"><i class="fas fa-home"></i> Dashboard</a>
+                    </li>
+                }
+
+                <li>
+                    <a asp-controller="Announcement" asp-action="Index"><i class="fas fa-bullhorn"></i> Announcements</a>
+                </li>
+                <li>
+                    <a asp-controller="Dashboard" asp-action="Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a>
+                </li>
+                <li>
+                    <a href="/Facilities"><i class="fas fa-swimming-pool"></i> Facilities</a>
+                </li>
+                <li>
+                    <a href="/ServiceRequests"><i class="fas fa-tools"></i> Service Requests</a>
+                </li>
+                <li class="active">
+                    <a asp-controller="Document" asp-action="Index"><i class="fas fa-file-alt"></i> Documents</a>
+                </li>
+                <li>
+                    <a href="/Forum"><i class="fas fa-comments"></i> Community Forum</a>
+                </li>
+                <li>
+                    <a asp-controller="Contact" asp-action="Index"><i class="fas fa-address-book"></i> Contacts</a>
+                </li>
+                <li>
+                    <a href="/Events"><i class="fas fa-calendar-alt"></i> Events</a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a asp-controller="Account" asp-action="Profile"><i class="fas fa-user-cog"></i> Profile</a>
+                <a asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="content-area">
+            <!-- Top Navigation -->
+            <header class="top-navbar">
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <div class="back-button">
+                    <a asp-controller="Document" asp-action="Index">
+                        <i class="fas fa-arrow-left"></i> Back to Documents
+                    </a>
+                </div>
+
+                <div class="navbar-right">
+                    <div class="notification-bell">
+                        <a asp-controller="Notification" asp-action="Index">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-count">@Model.NotificationCount</span>
+                        </a>
+                    </div>
+
+                    <div class="user-dropdown">
+                        <img src="@Model.ProfileImageUrl" alt="User Avatar">
+                        <span>@Model.FirstName</span>
+                        <i class="fas fa-chevron-down"></i>
+
+                        <div class="dropdown-menu">
+                            <a asp-controller="Account" asp-action="Profile"><i class="fas fa-user"></i> My Profile</a>
+                            <a href="/Settings"><i class="fas fa-cog"></i> Settings</a>
+                            <a asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="main-content">
+                <div class="page-header">
+                    <h1>Upload Document</h1>
+                    <nav class="breadcrumb">
+                        <a asp-controller="Dashboard" asp-action="@(Model.Role == "Admin" ? "AdminDashboard" : "StaffDashboard")">Dashboard</a> /
+                        <a asp-controller="Document" asp-action="Index">Documents</a> /
+                        Upload
+                    </nav>
+                </div>
+
+                <!-- Upload Form -->
+                <div class="upload-container">
+                    <form asp-controller="Document" asp-action="Upload" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+
+                        <!-- If there are validation errors -->
+                        @if (!ViewContext.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <div asp-validation-summary="All" class="text-danger"></div>
+                                <button class="close-alert"><i class="fas fa-times"></i></button>
+                            </div>
+                        }
+
+                        <div class="form-section">
+                            <h2>Document Details</h2>
+
+                            <div class="form-group">
+                                <label asp-for="Name" class="form-label">Document Name</label>
+                                <input asp-for="Name" class="form-control" placeholder="Enter document name" />
+                                <span asp-validation-for="Name" class="validation-error"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="Description" class="form-label">Description</label>
+                                <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter a brief description of the document"></textarea>
+                                <span asp-validation-for="Description" class="validation-error"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="Category" class="form-label">Category</label>
+                                <select asp-for="Category" asp-items="Model.Categories" class="form-control">
+                                    <option value="">-- Select Category --</option>
+                                </select>
+                                <span asp-validation-for="Category" class="validation-error"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Visible To</label>
+                                <div class="radio-group">
+                                    <div class="radio-option">
+                                        <input type="radio" id="visible-all" name="VisibleTo" value="All" checked="checked">
+                                        <label for="visible-all">All Users</label>
+                                    </div>
+                                    <div class="radio-option">
+                                        <input type="radio" id="visible-homeowners" name="VisibleTo" value="Homeowners">
+                                        <label for="visible-homeowners">Homeowners Only</label>
+                                    </div>
+                                    <div class="radio-option">
+                                        <input type="radio" id="visible-staff" name="VisibleTo" value="Staff">
+                                        <label for="visible-staff">Staff &amp; Admin Only</label>
+                                    </div>
+                                    @if (Model.Role == "Admin")
+                                    {
+                                        <div class="radio-option">
+                                            <input type="radio" id="visible-admin" name="VisibleTo" value="Admin">
+                                            <label for="visible-admin">Admin Only</label>
+                                        </div>
+                                    }
+                                </div>
+                                <span asp-validation-for="VisibleTo" class="validation-error"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h2>File Upload</h2>
+
+                            <div class="form-group">
+                                <label asp-for="DocumentFile" class="form-label">Document File</label>
+                                <div class="file-upload-container">
+                                    <div class="file-upload-box" id="file-upload-box">
+                                        <i class="fas fa-upload"></i>
+                                        <p>Drag & drop your file here<br>or</p>
+                                        <label for="DocumentFile" class="btn primary-btn">Choose File</label>
+                                        <input asp-for="DocumentFile" type="file" id="DocumentFile" style="display: none;" />
+                                        <p class="file-types">Supported file types: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, JPG, PNG</p>
+                                    </div>
+                                    <div id="file-preview" class="file-preview" style="display: none;">
+                                        <div class="file-preview-header">
+                                            <i class="fas fa-file" id="file-icon"></i>
+                                            <div class="file-preview-info">
+                                                <h4 id="file-name">filename.pdf</h4>
+                                                <p id="file-size">2.5 MB</p>
+                                            </div>
+                                            <button type="button" id="remove-file" class="btn small-btn danger-btn">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="DocumentFile" class="validation-error"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn primary-btn">
+                                <i class="fas fa-upload"></i> Upload Document
+                            </button>
+                            <a asp-controller="Document" asp-action="Index" class="btn secondary-btn">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="main-footer">
+                <div class="footer-content">
+                    <p>&copy; @DateTime.Now.Year Green Meadows Subdivision. All rights reserved.</p>
+                    <div class="footer-links">
+                        <a href="/Privacy">Privacy Policy</a>
+                        <a href="/Terms">Terms of Service</a>
+                        <a href="/Contact">Contact Us</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile sidebar toggle
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                });
+            }
+
+            // User dropdown toggle
+            const userDropdown = document.querySelector('.user-dropdown');
+            if (userDropdown) {
+                userDropdown.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    this.querySelector('.dropdown-menu').classList.toggle('show');
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (!userDropdown.contains(e.target)) {
+                        userDropdown.querySelector('.dropdown-menu').classList.remove('show');
+                    }
+                });
+            }
+
+            // File upload preview
+            const fileInput = document.getElementById('DocumentFile');
+            const fileUploadBox = document.getElementById('file-upload-box');
+            const filePreview = document.getElementById('file-preview');
+            const fileName = document.getElementById('file-name');
+            const fileSize = document.getElementById('file-size');
+            const fileIcon = document.getElementById('file-icon');
+            const removeFileBtn = document.getElementById('remove-file');
+
+            function formatBytes(bytes, decimals = 2) {
+                if (bytes === 0) return '0 Bytes';
+
+                const k = 1024;
+                const dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            }
+
+            function getFileIcon(fileType) {
+                const type = fileType.toLowerCase();
+                if (type.includes('pdf')) {
+                    return 'fa-file-pdf';
+                } else if (type.includes('doc')) {
+                    return 'fa-file-word';
+                } else if (type.includes('xls')) {
+                    return 'fa-file-excel';
+                } else if (type.includes('ppt')) {
+                    return 'fa-file-powerpoint';
+                } else if (type.includes('jpg') || type.includes('jpeg') || type.includes('png') || type.includes('gif')) {
+                    return 'fa-file-image';
+                } else {
+                    return 'fa-file';
+                }
+            }
+
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    if (this.files && this.files[0]) {
+                        const file = this.files[0];
+
+                        // Update preview
+                        fileName.textContent = file.name;
+                        fileSize.textContent = formatBytes(file.size);
+                        fileIcon.className = 'fas ' + getFileIcon(file.type);
+
+                        // Show preview, hide upload box
+                        fileUploadBox.style.display = 'none';
+                        filePreview.style.display = 'block';
+                    }
+                });
+            }
+
+            if (removeFileBtn) {
+                removeFileBtn.addEventListener('click', function() {
+                    // Clear file input
+                    fileInput.value = '';
+
+                    // Hide preview, show upload box
+                    filePreview.style.display = 'none';
+                    fileUploadBox.style.display = 'flex';
+                });
+            }
+
+            // Drag and drop functionality
+            if (fileUploadBox) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    fileUploadBox.addEventListener(eventName, preventDefaults, false);
+                });
+
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    fileUploadBox.addEventListener(eventName, highlight, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    fileUploadBox.addEventListener(eventName, unhighlight, false);
+                });
+
+                function highlight() {
+                    fileUploadBox.classList.add('highlight');
+                }
+
+                function unhighlight() {
+                    fileUploadBox.classList.remove('highlight');
+                }
+
+                fileUploadBox.addEventListener('drop', function(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+
+                    if (files.length) {
+                        fileInput.files = files;
+
+                        // Trigger change event
+                        const event = new Event('change', { bubbles: true });
+                        fileInput.dispatchEvent(event);
+                    }
+                });
+            }
+
+            // Close alert buttons
+            const closeAlerts = document.querySelectorAll('.close-alert');
+            closeAlerts.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    this.closest('.alert').style.display = 'none';
+                });
+            });
+
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                document.querySelectorAll('.alert').forEach(function(alert) {
+                    alert.style.display = 'none';
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

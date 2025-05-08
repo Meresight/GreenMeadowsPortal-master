@@ -17,6 +17,7 @@ namespace GreenMeadowsPortal.Data
         public DbSet<AnnouncementReadReceipt> AnnouncementReadReceipts { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
+        public DbSet<DocumentModel> Documents { get; set; }
 
         // Contact Directory Models
         public DbSet<ContactCategory> ContactCategories { get; set; }
@@ -32,11 +33,18 @@ namespace GreenMeadowsPortal.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            // You can customize the Identity model here if needed
-            // For example, change table names:
-            // builder.Entity<ApplicationUser>().ToTable("AppUsers");
-            // builder.Entity<IdentityRole>().ToTable("AppRoles");
+            builder.Entity<DocumentModel>()
+                 .HasOne(d => d.UploadedBy)
+                 .WithMany()
+                 .HasForeignKey(d => d.UploadedById)
+                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Set up indexes
+            builder.Entity<DocumentModel>()
+                .HasIndex(d => d.Category);
+
+            builder.Entity<DocumentModel>()
+                .HasIndex(d => d.VisibleTo);
             // Contact Message Soft Delete Behavior
             builder.Entity<ContactMessage>()
                 .HasQueryFilter(m =>

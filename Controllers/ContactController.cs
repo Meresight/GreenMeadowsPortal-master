@@ -225,105 +225,134 @@ namespace GreenMeadowsPortal.Controllers
         // GET: /Contact/Inbox - View user's inbox
         public async Task<IActionResult> Inbox()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return RedirectToAction("Login", "Account");
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var userRole = roles.FirstOrDefault() ?? "Homeowner";
-
-            // Get different messages based on user role
-            var viewModel = new ContactInboxViewModel
+            try
             {
-                CurrentUser = user,
-                FirstName = user.FirstName,
-                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                Role = userRole,
-                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id)
-            };
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                    return RedirectToAction("Login", "Account");
 
-            if (userRole == "Admin")
-            {
-                // Admins see all messages
-                viewModel.Messages = await _contactService.GetAllMessagesAsync();
-                viewModel.InboxTitle = "Admin Inbox";
-                viewModel.CanManageAllMessages = true;
+                var roles = await _userManager.GetRolesAsync(user);
+                var userRole = roles.FirstOrDefault() ?? "Homeowner";
+
+                // Log to debug
+                _logger.LogInformation($"Loading inbox for user {user.Id} with role {userRole}");
+
+                // Get messages based on user role
+                var viewModel = new ContactInboxViewModel
+                {
+                    CurrentUser = user,
+                    FirstName = user.FirstName ?? string.Empty,
+                    ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                    Role = userRole,
+                    NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id)
+                };
+
+                if (userRole == "Admin")
+                {
+                    // Admins see all messages
+                    viewModel.Messages = await _contactService.GetAllMessagesAsync();
+                    viewModel.InboxTitle = "Admin Inbox";
+                    viewModel.CanManageAllMessages = true;
+                }
+                else if (userRole == "Staff")
+                {
+                    // Staff see messages to/from them
+                    viewModel.Messages = await _contactService.GetStaffMessagesAsync(user.Id);
+                    viewModel.InboxTitle = "Staff Inbox";
+                    viewModel.CanManageAllMessages = false;
+                }
+                else
+                {
+                    // Homeowners see only their own messages
+                    viewModel.Messages = await _contactService.GetUserMessagesAsync(user.Id);
+                    viewModel.InboxTitle = "Message Inbox";
+                    viewModel.CanManageAllMessages = false;
+                }
+
+                _logger.LogInformation($"Found {viewModel.Messages.Count} messages for user {user.Id}");
+                return View(viewModel);
             }
-            else if (userRole == "Staff")
+            catch (Exception ex)
             {
-                // Staff see messages to/from them plus messages to staff department
-                viewModel.Messages = await _contactService.GetStaffMessagesAsync(user.Id);
-                viewModel.InboxTitle = "Staff Inbox";
-                viewModel.CanManageAllMessages = false;
+                _logger.LogError(ex, "Error in Inbox action: {Message}", ex.Message);
+                TempData["ErrorMessage"] = "An error occurred while loading your inbox. Please try again.";
+                return RedirectToAction("Index", "Dashboard");
             }
-            else
-            {
-                // Homeowners see only their own messages
-                viewModel.Messages = await _contactService.GetUserMessagesAsync(user.Id);
-                viewModel.InboxTitle = "Message Inbox";
-                viewModel.CanManageAllMessages = false;
-            }
-
-            return View(viewModel);
         }
+
 
         // GET: /Contact/ViewMessage/{id} - View a specific message
         public async Task<IActionResult> ViewMessage(int id)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return RedirectToAction("Login", "Account");
-
-            var message = await _contactService.GetMessageByIdAsync(id);
-            if (message == null)
-                return NotFound();
-
-            // Check if user is the sender or recipient
-            if (message.SenderId != user.Id && message.RecipientId != user.Id)
-                return Forbid();
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var sender = await _userManager.FindByIdAsync(message.SenderId);
-            var recipient = await _userManager.FindByIdAsync(message.RecipientId);
-
-            var viewMessageModel = new ViewMessageViewModel
+            try
             {
-                CurrentUser = user,
-                FirstName = user.FirstName,
-                ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
-                Role = roles.FirstOrDefault() ?? "Homeowner",
-                NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                    return RedirectToAction("Login", "Account");
 
-                // Message details
-                MessageId = message.Id,
-                Subject = message.Subject,
-                MessageContent = message.Content,
-                SentDate = message.SentDate,
-                IsRead = message.IsRead,
+                var message = await _contactService.GetMessageByIdAsync(id);
+                if (message == null)
+                {
+                    TempData["ErrorMessage"] = "Message not found.";
+                    return RedirectToAction("Inbox");
+                }
 
-                // Sender details
-                SenderId = message.SenderId,
-                SenderName = sender != null ? $"{sender.FirstName} {sender.LastName}" : "Unknown User",
-                SenderEmail = sender?.Email ?? "",
-                SenderRole = sender != null ? (await _userManager.GetRolesAsync(sender)).FirstOrDefault() ?? "User" : "Unknown",
-                SenderImageUrl = sender?.ProfileImageUrl ?? "/images/default-avatar.png",
+                // Check if user is the sender or recipient
+                if (message.SenderId != user.Id && message.RecipientId != user.Id)
+                {
+                    TempData["ErrorMessage"] = "You do not have permission to view this message.";
+                    return RedirectToAction("Inbox");
+                }
 
-                // Recipient details
-                RecipientId = message.RecipientId,
-                RecipientName = recipient != null ? $"{recipient.FirstName} {recipient.LastName}" : "Unknown User",
-                RecipientEmail = recipient?.Email ?? "",
-                RecipientRole = recipient != null ? (await _userManager.GetRolesAsync(recipient)).FirstOrDefault() ?? "User" : "Unknown",
-                RecipientImageUrl = recipient?.ProfileImageUrl ?? "/images/default-avatar.png"
-            };
+                var roles = await _userManager.GetRolesAsync(user);
+                var sender = await _userManager.FindByIdAsync(message.SenderId);
+                var recipient = await _userManager.FindByIdAsync(message.RecipientId);
 
-            // Mark as read if the current user is the recipient and message is unread
-            if (message.RecipientId == user.Id && !message.IsRead)
-            {
-                await _contactService.MarkMessageAsReadAsync(id);
-                viewMessageModel.IsRead = true;
+                var viewMessageModel = new ViewMessageViewModel
+                {
+                    CurrentUser = user,
+                    FirstName = user.FirstName ?? string.Empty,
+                    ProfileImageUrl = user.ProfileImageUrl ?? "/images/default-avatar.png",
+                    Role = roles.FirstOrDefault() ?? "Homeowner",
+                    NotificationCount = await _notificationService.GetUnreadCountAsync(user.Id),
+
+                    // Message details
+                    MessageId = message.Id,
+                    Subject = message.Subject,
+                    MessageContent = message.Content,
+                    SentDate = message.SentDate,
+                    IsRead = message.IsRead,
+
+                    // Sender details
+                    SenderId = message.SenderId,
+                    SenderName = sender != null ? $"{sender.FirstName ?? ""} {sender.LastName ?? ""}".Trim() : "Unknown User",
+                    SenderEmail = sender?.Email ?? "",
+                    SenderRole = sender != null ? (await _userManager.GetRolesAsync(sender)).FirstOrDefault() ?? "User" : "Unknown",
+                    SenderImageUrl = sender?.ProfileImageUrl ?? "/images/default-avatar.png",
+
+                    // Recipient details
+                    RecipientId = message.RecipientId,
+                    RecipientName = recipient != null ? $"{recipient.FirstName ?? ""} {recipient.LastName ?? ""}".Trim() : "Unknown User",
+                    RecipientEmail = recipient?.Email ?? "",
+                    RecipientRole = recipient != null ? (await _userManager.GetRolesAsync(recipient)).FirstOrDefault() ?? "User" : "Unknown",
+                    RecipientImageUrl = recipient?.ProfileImageUrl ?? "/images/default-avatar.png"
+                };
+
+                // Mark as read if the current user is the recipient and message is unread
+                if (message.RecipientId == user.Id && !message.IsRead)
+                {
+                    await _contactService.MarkMessageAsReadAsync(id);
+                    viewMessageModel.IsRead = true;
+                }
+
+                return View(viewMessageModel);
             }
-
-            return View(viewMessageModel);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in ViewMessage action: {Message}", ex.Message);
+                TempData["ErrorMessage"] = "An error occurred while loading the message. Please try again.";
+                return RedirectToAction("Inbox");
+            }
         }
 
         // POST: /Contact/MarkAsRead/{id} - Mark a message as read
@@ -513,32 +542,43 @@ namespace GreenMeadowsPortal.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddVendorContact(AddVendorContactViewModel model)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                TempData["ErrorMessage"] = "Please provide all required information.";
+                if (!ModelState.IsValid)
+                {
+                    TempData["ErrorMessage"] = "Please provide all required information.";
+                    return RedirectToAction("Manage");
+                }
+
+                _logger.LogInformation($"Adding vendor contact: {model.CompanyName}");
+
+                var success = await _contactService.AddVendorContactAsync(
+                    name: model.CompanyName,
+                    contactPerson: model.ContactPerson,
+                    phoneNumber: model.PhoneNumber,
+                    email: model.Email,
+                    service: model.Service,
+                    website: model.Website,
+                    isPreferred: model.IsPreferred
+                );
+
+                if (success)
+                {
+                    TempData["SuccessMessage"] = "Vendor contact added successfully.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Failed to add vendor contact.";
+                }
+
                 return RedirectToAction("Manage");
             }
-
-            var success = await _contactService.AddVendorContactAsync(
-                name: model.CompanyName,
-                contactPerson: model.ContactPerson,
-                phoneNumber: model.PhoneNumber,
-                email: model.Email,
-                service: model.Service,
-                website: model.Website,
-                isPreferred: model.IsPreferred
-            );
-
-            if (success)
+            catch (Exception ex)
             {
-                TempData["SuccessMessage"] = "Vendor contact added successfully.";
+                _logger.LogError(ex, "Error in AddVendorContact action: {Message}", ex.Message);
+                TempData["ErrorMessage"] = "An unexpected error occurred while adding the vendor contact: " + ex.Message;
+                return RedirectToAction("Manage");
             }
-            else
-            {
-                TempData["ErrorMessage"] = "Failed to add vendor contact.";
-            }
-
-            return RedirectToAction("Manage");
         }
         // First, let's fix the AddContactCategory method in the ContactController.cs
         [HttpPost]
@@ -546,14 +586,16 @@ namespace GreenMeadowsPortal.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddContactCategory(AddContactCategoryViewModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                TempData["ErrorMessage"] = "Please provide all required information.";
-                return RedirectToAction("Manage");
-            }
-
             try
             {
+                if (!ModelState.IsValid)
+                {
+                    TempData["ErrorMessage"] = "Please provide all required information.";
+                    return RedirectToAction("Manage");
+                }
+
+                _logger.LogInformation($"Adding contact category: {model.CategoryName}");
+
                 var success = await _contactService.AddContactCategoryAsync(
                     name: model.CategoryName,
                     description: model.Description,
@@ -568,17 +610,17 @@ namespace GreenMeadowsPortal.Controllers
                 {
                     TempData["ErrorMessage"] = "Failed to add contact category.";
                 }
+
+                return RedirectToAction("Manage");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding contact category");
-                TempData["ErrorMessage"] = "An error occurred while adding the contact category: " + ex.Message;
+                _logger.LogError(ex, "Error in AddContactCategory action: {Message}", ex.Message);
+                TempData["ErrorMessage"] = "An unexpected error occurred while adding the contact category: " + ex.Message;
+                return RedirectToAction("Manage");
             }
-
-            return RedirectToAction("Manage");
         }
 
-       
         // POST: /Contact/DeleteContact - Delete a contact
         [HttpPost]
         [ValidateAntiForgeryToken]

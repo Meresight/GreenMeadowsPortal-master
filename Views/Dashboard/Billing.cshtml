@@ -98,7 +98,12 @@
                         <i class="fas fa-bell"></i>
                         <span class="notification-count">@Model.NotificationCount</span>
                     </div>
-
+                    <div class="inbox-icon">
+                        <a asp-controller="Contact" asp-action="Inbox">
+                            <i class="fas fa-envelope"></i>
+                            <span class="unread-messages" id="unread-message-count">0</span>
+                        </a>
+                    </div>
                     <div class="user-dropdown">
                         <img src="@(string.IsNullOrEmpty(Model.ProfileImageUrl) ? "/images/default-avatar.png" : Model.ProfileImageUrl)" alt="User Avatar">
                         <span>@Model.FirstName</span>

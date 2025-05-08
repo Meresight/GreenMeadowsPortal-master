@@ -27,6 +27,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 builder.Services.AddControllersWithViews();
 
 // Register services
+builder.Services.AddScoped<DocumentService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<INotificationService>(provider =>
     provider.GetRequiredService<NotificationService>());

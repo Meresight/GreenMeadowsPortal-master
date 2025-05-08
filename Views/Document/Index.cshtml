@@ -1,0 +1,368 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using GreenMeadowsPortal.ViewModels
+@model DocumentLibraryViewModel
+
+@{
+    ViewData["Title"] = "Document Library - Green Meadows Portal";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Meadows | Document Library</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/admin.css">
+    <link rel="stylesheet" href="~/css/documents.css">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Green Meadows</h3>
+                <div class="sidebar-logo">GM</div>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <img src="@Model.ProfileImageUrl" alt="User Avatar">
+                </div>
+                </main>
+
+                <!-- Footer -->
+                <footer class="main-footer">
+                    <div class="footer-content">
+                        <p>&copy; @DateTime.Now.Year Green Meadows Subdivision. All rights reserved.</p>
+                        <div class="footer-links">
+                            <a href="/Privacy">Privacy Policy</a>
+                            <a href="/Terms">Terms of Service</a>
+                            <a href="/Contact">Contact Us</a>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile sidebar toggle
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                });
+            }
+
+            // User dropdown toggle
+            const userDropdown = document.querySelector('.user-dropdown');
+            if (userDropdown) {
+                userDropdown.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    this.querySelector('.dropdown-menu').classList.toggle('show');
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (!userDropdown.contains(e.target)) {
+                        userDropdown.querySelector('.dropdown-menu').classList.remove('show');
+                    }
+                });
+            }
+
+            // Document search functionality
+            const searchInput = document.getElementById('document-search');
+            const searchButton = document.getElementById('search-btn');
+
+            function performSearch() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const documentItems = document.querySelectorAll('.document-item');
+
+                documentItems.forEach(item => {
+                    const category = item.getAttribute('data-category').toLowerCase();
+                    const name = item.getAttribute('data-name').toLowerCase();
+                    const description = item.querySelector('p').textContent.toLowerCase();
+
+                    if (category.includes(searchTerm) ||
+                        name.includes(searchTerm) ||
+                        description.includes(searchTerm)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Show/hide empty state messages
+                document.querySelectorAll('.document-category').forEach(category => {
+                    const visibleItems = category.querySelectorAll('.document-item[style="display: flex"]').length;
+                    const emptyState = category.querySelector('.empty-state');
+
+                    if (visibleItems === 0) {
+                        // If no items are visible, create empty state if it doesn't exist
+                        if (!emptyState) {
+                            const emptyStateDiv = document.createElement('div');
+                            emptyStateDiv.className = 'empty-state';
+                            emptyStateDiv.innerHTML = `
+                                <div class="empty-icon">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <h3>No Matching Documents</h3>
+                                <p>No documents in this category match your search.</p>
+                            `;
+                            category.querySelector('.document-list').appendChild(emptyStateDiv);
+                        } else {
+                            emptyState.style.display = 'flex';
+                        }
+                    } else if (emptyState) {
+                        emptyState.style.display = 'none';
+                    }
+                });
+            }
+
+            if (searchButton) {
+                searchButton.addEventListener('click', performSearch);
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('keyup', function(e) {
+                    if (e.key === 'Enter') {
+                        performSearch();
+                    }
+                });
+            }
+
+            // Close alert buttons
+            const closeAlerts = document.querySelectorAll('.close-alert');
+            closeAlerts.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    this.closest('.alert').style.display = 'none';
+                });
+            });
+
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                document.querySelectorAll('.alert').forEach(function(alert) {
+                    alert.style.display = 'none';
+                });
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
+<div class="user-info">
+    <h4>@Model.FirstName</h4>
+    <p>@Model.CurrentUserRole</p>
+</div>
+            </div>
+
+<ul class="sidebar-menu">
+    @if (Model.CurrentUserRole == "Admin")
+    {
+        <li>
+            <a asp-controller="Dashboard" asp-action="AdminDashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </li>
+        <li>
+            <a asp-controller="Dashboard" asp-action="UserManagement"><i class="fas fa-users"></i> User Management</a>
+        </li>
+    }
+    else if (Model.CurrentUserRole == "Staff")
+    {
+        <li>
+            <a asp-controller="Dashboard" asp-action="StaffDashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </li>
+    }
+    else
+    {
+        <li>
+            <a asp-controller="Dashboard" asp-action="HomeownerDashboard"><i class="fas fa-home"></i> Dashboard</a>
+        </li>
+    }
+
+    <li>
+        <a asp-controller="Announcement" asp-action="Index"><i class="fas fa-bullhorn"></i> Announcements</a>
+    </li>
+    <li>
+        <a asp-controller="Dashboard" asp-action="Billing"><i class="fas fa-file-invoice-dollar"></i> Billing</a>
+    </li>
+    <li>
+        <a href="/Facilities"><i class="fas fa-swimming-pool"></i> Facilities</a>
+    </li>
+    <li>
+        <a href="/ServiceRequests"><i class="fas fa-tools"></i> Service Requests</a>
+    </li>
+    <li class="active">
+        <a asp-controller="Document" asp-action="Index"><i class="fas fa-file-alt"></i> Documents</a>
+    </li>
+    <li>
+        <a href="/Forum"><i class="fas fa-comments"></i> Community Forum</a>
+    </li>
+    <li>
+        <a asp-controller="Contact" asp-action="Index"><i class="fas fa-address-book"></i> Contacts</a>
+    </li>
+    <li>
+        <a href="/Events"><i class="fas fa-calendar-alt"></i> Events</a>
+    </li>
+</ul>
+
+<div class="sidebar-footer">
+    <a asp-controller="Account" asp-action="Profile"><i class="fas fa-user-cog"></i> Profile</a>
+    <a asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+</div>
+        </nav>
+
+<!-- Main Content -->
+<div class="content-area">
+    <!-- Top Navigation -->
+    <header class="top-navbar">
+        <button id="sidebar-toggle" class="sidebar-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="search-bar">
+            <input type="text" id="document-search" placeholder="Search documents...">
+            <button id="search-btn"><i class="fas fa-search"></i></button>
+        </div>
+
+        <div class="navbar-right">
+            <div class="notification-bell">
+                <a asp-controller="Notification" asp-action="Index">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count">@Model.NotificationCount</span>
+                </a>
+            </div>
+
+            <div class="user-dropdown">
+                <img src="@Model.ProfileImageUrl" alt="User Avatar">
+                <span>@Model.FirstName</span>
+                <i class="fas fa-chevron-down"></i>
+
+                <div class="dropdown-menu">
+                    <a asp-controller="Account" asp-action="Profile"><i class="fas fa-user"></i> My Profile</a>
+                    <a href="/Settings"><i class="fas fa-cog"></i> Settings</a>
+                    <a asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Document Library</h1>
+            <div class="header-actions">
+                @if (Model.CurrentUserRole == "Admin" || Model.CurrentUserRole == "Staff")
+                {
+                    <a asp-controller="Document" asp-action="Upload" class="btn primary-btn">
+                        <i class="fas fa-upload"></i> Upload Document
+                    </a>
+                }
+            </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+                <button class="close-alert"><i class="fas fa-times"></i></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+                <button class="close-alert"><i class="fas fa-times"></i></button>
+            </div>
+        }
+
+        <!-- Document categories -->
+        <div class="document-categories">
+            @foreach (var category in Model.DocumentCategories)
+            {
+                <div class="document-category">
+                    <div class="category-header">
+                        <div class="category-icon">
+                            <i class="fas @category.Icon"></i>
+                        </div>
+                        <div>
+                            <h2>@category.Name</h2>
+                            <p>@category.Description</p>
+                        </div>
+                    </div>
+
+                    <div class="document-list">
+                        @if (category.Documents != null && category.Documents.Any())
+                        {
+                            foreach (var document in category.Documents)
+                            {
+                                <div class="document-item" data-category="@document.Category" data-name="@document.Name">
+                                    <div class="document-icon">
+                                        @if (document.FileType.ToLower() == "pdf")
+                                        {
+                                            <i class="fas fa-file-pdf"></i>
+                                        }
+                                        else if (document.FileType.ToLower() == "doc" || document.FileType.ToLower() == "docx")
+                                        {
+                                            <i class="fas fa-file-word"></i>
+                                        }
+                                        else if (document.FileType.ToLower() == "xls" || document.FileType.ToLower() == "xlsx")
+                                        {
+                                            <i class="fas fa-file-excel"></i>
+                                        }
+                                        else if (document.FileType.ToLower() == "ppt" || document.FileType.ToLower() == "pptx")
+                                        {
+                                            <i class="fas fa-file-powerpoint"></i>
+                                        }
+                                        else if (document.FileType.ToLower() == "jpg" || document.FileType.ToLower() == "jpeg" || document.FileType.ToLower() == "png" || document.FileType.ToLower() == "gif")
+                                        {
+                                            <i class="fas fa-file-image"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-file"></i>
+                                        }
+                                    </div>
+                                    <div class="document-info">
+                                        <h3>@document.Name</h3>
+                                        <p>@document.Description</p>
+                                        <div class="document-meta">
+                                            <span><i class="fas fa-file-alt"></i> @document.FileType</span>
+                                            <span><i class="fas fa-weight-hanging"></i> @document.FileSize</span>
+                                            <span><i class="fas fa-calendar-alt"></i> @document.UploadDate.ToString("MMM dd, yyyy")</span>
+                                        </div>
+                                    </div>
+                                    <div class="document-actions">
+                                        <a asp-controller="Document" asp-action="Download" asp-route-id="@document.Id" class="btn small-btn primary-btn">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                        @if (Model.CurrentUserRole == "Admin")
+                                        {
+                                            <a asp-controller="Document" asp-action="Delete" asp-route-id="@document.Id" class="btn small-btn danger-btn">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <div class="empty-icon">
+                                    <i class="fas fa-folder-open"></i>
+                                </div>
+                                <h3>No Documents Available</h3>
+                                <p>There are no documents in this category yet.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
