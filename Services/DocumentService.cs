@@ -11,12 +11,12 @@ namespace GreenMeadowsPortal.Services
 {
     public class DocumentService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _hostEnvironment;
         private readonly ILogger<DocumentService> _logger;
 
         public DocumentService(
-            ApplicationDbContext context,
+            AppDbContext context,
             IWebHostEnvironment hostEnvironment,
             ILogger<DocumentService> logger)
         {
@@ -42,7 +42,7 @@ namespace GreenMeadowsPortal.Services
                 .ToListAsync();
         }
 
-        public async Task<List<DocumentModel>> GetDocumentsForUserAsync(string userId, string userRole)
+        public async Task<List<DocumentModel>> GetDocumentsForUserAsync(string userRole)
         {
             // Filter documents based on user role
             IQueryable<DocumentModel> query = _context.Documents
@@ -78,9 +78,13 @@ namespace GreenMeadowsPortal.Services
         {
             // Save file to disk
             string fileUrl = await SaveDocumentFileAsync(file, document.Category);
+            string fileType = Path.GetExtension(file.FileName).TrimStart('.').ToUpper();
+            string fileSize = GetFileSize(file.Length);
 
             // Set file properties
             document.FileUrl = fileUrl;
+            document.FileType = fileType;
+            document.FileSize = fileSize;
             document.UploadDate = DateTime.Now;
 
             // Add to database
@@ -171,16 +175,6 @@ namespace GreenMeadowsPortal.Services
             }
 
             return $"{len:0.##} {sizes[order]}";
-        }
-
-        public string GetFileType(string fileName)
-        {
-            string extension = Path.GetExtension(fileName).ToLower();
-
-            if (string.IsNullOrEmpty(extension))
-                return "Unknown";
-
-            return extension.TrimStart('.').ToUpper();
         }
     }
 }

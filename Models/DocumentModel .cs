@@ -28,6 +28,12 @@ namespace GreenMeadowsPortal.Models
         [StringLength(255)]
         public string FileUrl { get; set; } = string.Empty;
 
+        [StringLength(50)]
+        public string FileType { get; set; } = string.Empty;
+
+        [StringLength(20)]
+        public string FileSize { get; set; } = string.Empty;
+
         [Required]
         public string UploadedById { get; set; } = string.Empty;
 
